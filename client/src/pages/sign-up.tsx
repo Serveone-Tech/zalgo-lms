@@ -4,7 +4,7 @@ import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { GraduationCap, Loader2, Eye, EyeOff } from "lucide-react";
+import { Loader2, Eye, EyeOff } from "lucide-react";
 import { useTheme } from "@/components/theme-provider";
 import { Moon, Sun } from "lucide-react";
 
@@ -36,12 +36,7 @@ export default function SignUpPage() {
     <div className="min-h-screen bg-background flex">
       <div className="hidden lg:flex lg:w-1/2 bg-primary relative overflow-hidden flex-col justify-between p-12">
         <div className="relative z-10">
-          <div className="flex items-center gap-2 mb-12">
-            <div className="w-9 h-9 rounded-lg bg-white/20 backdrop-blur flex items-center justify-center">
-              <GraduationCap className="w-5 h-5 text-white" />
-            </div>
-            <span className="text-white font-bold text-xl">EduLearn</span>
-          </div>
+          <img src="/logo.png" alt="Zalgo Edutech" className="h-10 w-auto brightness-0 invert mb-12" />
           <div className="mt-16">
             <h1 className="text-4xl font-bold text-white leading-tight mb-4">
               Start your<br />learning journey
@@ -72,11 +67,8 @@ export default function SignUpPage() {
         </Button>
 
         <div className="w-full max-w-sm">
-          <div className="lg:hidden flex items-center gap-2 mb-8">
-            <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-              <GraduationCap className="w-4 h-4 text-primary-foreground" />
-            </div>
-            <span className="font-bold text-lg">EduLearn</span>
+          <div className="lg:hidden mb-8">
+            <img src="/logo.png" alt="Zalgo Edutech" className="h-8 w-auto" />
           </div>
 
           <div className="mb-8">

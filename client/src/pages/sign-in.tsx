@@ -4,8 +4,7 @@ import { useLocation, Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { GraduationCap, Loader2, Eye, EyeOff } from "lucide-react";
+import { Loader2, Eye, EyeOff } from "lucide-react";
 import { useTheme } from "@/components/theme-provider";
 import { Moon, Sun } from "lucide-react";
 
@@ -34,15 +33,9 @@ export default function SignInPage() {
 
   return (
     <div className="min-h-screen bg-background flex">
-      {/* Left panel - decorative */}
       <div className="hidden lg:flex lg:w-1/2 bg-primary relative overflow-hidden flex-col justify-between p-12">
         <div className="relative z-10">
-          <div className="flex items-center gap-2 mb-12">
-            <div className="w-9 h-9 rounded-lg bg-white/20 backdrop-blur flex items-center justify-center">
-              <GraduationCap className="w-5 h-5 text-white" />
-            </div>
-            <span className="text-white font-bold text-xl">EduLearn</span>
-          </div>
+          <img src="/logo.png" alt="Zalgo Edutech" className="h-10 w-auto brightness-0 invert mb-12" />
           <div className="mt-16">
             <h1 className="text-4xl font-bold text-white leading-tight mb-4">
               Learn from the<br />best instructors
@@ -72,7 +65,6 @@ export default function SignInPage() {
         <div className="absolute -top-12 -left-12 w-48 h-48 rounded-full bg-white/5" />
       </div>
 
-      {/* Right panel - form */}
       <div className="flex-1 flex flex-col items-center justify-center p-8 relative">
         <Button
           size="icon"
@@ -86,15 +78,12 @@ export default function SignInPage() {
 
         <div className="w-full max-w-sm">
           <div className="lg:hidden flex items-center gap-2 mb-8">
-            <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-              <GraduationCap className="w-4 h-4 text-primary-foreground" />
-            </div>
-            <span className="font-bold text-lg">EduLearn</span>
+            <img src="/logo.png" alt="Zalgo Edutech" className="h-8 w-auto" />
           </div>
 
           <div className="mb-8">
             <h2 className="text-2xl font-bold text-foreground">Welcome back</h2>
-            <p className="text-muted-foreground mt-1">Sign in to your account to continue</p>
+            <p className="text-muted-foreground mt-1">Sign in to your Zalgo Edutech account</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">

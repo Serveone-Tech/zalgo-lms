@@ -17,7 +17,6 @@ import {
   Users,
   Tag,
   UserCircle,
-  GraduationCap,
   LogOut,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
@@ -50,14 +49,13 @@ export function AppSidebar() {
   return (
     <Sidebar>
       <SidebarHeader className="p-4 border-b border-sidebar-border">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-md bg-primary flex items-center justify-center">
-            <GraduationCap className="w-4 h-4 text-primary-foreground" />
-          </div>
-          <div>
-            <div className="font-semibold text-sm text-sidebar-foreground">EduLearn</div>
-            <div className="text-xs text-muted-foreground capitalize">{user?.role ?? "user"}</div>
-          </div>
+        <div className="flex flex-col gap-1">
+          <img
+            src="/logo.png"
+            alt="Zalgo Edutech"
+            className="h-9 w-auto object-contain object-left"
+          />
+          <span className="text-xs text-muted-foreground capitalize pl-0.5">{user?.role ?? "user"}</span>
         </div>
       </SidebarHeader>
 
