@@ -72,6 +72,20 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     res.json({ message: "Password reset successfully. You can now sign in." });
   });
 
+  app.post("/api/auth/change-password", async (req, res) => {
+    const userId = (req.session as any)[SESSION_USER_KEY];
+    if (!userId) return res.status(401).json({ message: "Not authenticated" });
+    const { oldPassword, newPassword } = req.body;
+    if (!oldPassword || !newPassword) return res.status(400).json({ message: "All fields are required" });
+    if (newPassword.length < 6) return res.status(400).json({ message: "New password must be at least 6 characters" });
+    const user = await storage.getUser(userId);
+    if (!user) return res.status(404).json({ message: "User not found" });
+    if (user.password !== oldPassword) return res.status(400).json({ message: "Current password is incorrect" });
+    if (oldPassword === newPassword) return res.status(400).json({ message: "New password must be different from current password" });
+    await storage.updateUser(userId, { password: newPassword });
+    res.json({ message: "Password changed successfully" });
+  });
+
   app.get("/api/auth/me", async (req, res) => {
     const userId = (req.session as any)[SESSION_USER_KEY];
     if (!userId) return res.status(401).json({ message: "Not authenticated" });
