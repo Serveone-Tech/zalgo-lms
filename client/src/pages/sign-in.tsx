@@ -33,14 +33,22 @@ export default function SignInPage() {
 
   return (
     <div className="min-h-screen bg-background flex">
-      <div className="hidden lg:flex lg:w-1/2 bg-primary relative overflow-hidden flex-col justify-between p-12">
+      {/* Left panel with background image */}
+      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden flex-col justify-between p-12">
+        {/* Background image with low visibility overlay */}
+        <div
+          className="absolute inset-0 bg-cover bg-center"
+          style={{ backgroundImage: "url('/auth-bg.png')" }}
+        />
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/90 via-primary/80 to-[#003d52]/90" />
+
         <div className="relative z-10">
           <img src="/logo.png" alt="Zalgo Edutech" className="h-10 w-auto brightness-0 invert mb-12" />
           <div className="mt-16">
             <h1 className="text-4xl font-bold text-white leading-tight mb-4">
               Learn from the<br />best instructors
             </h1>
-            <p className="text-white/70 text-lg">
+            <p className="text-white/75 text-lg">
               Access hundreds of courses, track your progress, and earn certificates.
             </p>
           </div>
@@ -53,19 +61,19 @@ export default function SignInPage() {
             { label: "Completion Rate", value: "92%" },
             { label: "Expert Instructors", value: "50+" },
           ].map(stat => (
-            <div key={stat.label} className="bg-white/10 backdrop-blur rounded-xl p-4">
+            <div key={stat.label} className="bg-white/10 backdrop-blur-sm border border-white/10 rounded-xl p-4">
               <div className="text-2xl font-bold text-white">{stat.value}</div>
               <div className="text-white/70 text-sm mt-0.5">{stat.label}</div>
             </div>
           ))}
         </div>
 
-        <div className="absolute inset-0 bg-gradient-to-br from-primary via-primary to-primary/70" />
-        <div className="absolute -bottom-24 -right-24 w-72 h-72 rounded-full bg-white/5" />
-        <div className="absolute -top-12 -left-12 w-48 h-48 rounded-full bg-white/5" />
+        <div className="absolute -bottom-24 -right-24 w-72 h-72 rounded-full bg-white/5 blur-2xl" />
+        <div className="absolute -top-12 -left-12 w-48 h-48 rounded-full bg-white/5 blur-xl" />
       </div>
 
-      <div className="flex-1 flex flex-col items-center justify-center p-8 relative">
+      {/* Right panel - form */}
+      <div className="flex-1 flex flex-col items-center justify-center p-8 relative bg-background">
         <Button
           size="icon"
           variant="ghost"

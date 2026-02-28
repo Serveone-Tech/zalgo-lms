@@ -40,18 +40,27 @@ export default function ForgotPasswordPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6 relative">
+    <div className="min-h-screen relative flex flex-col items-center justify-center p-6">
+      {/* Full-page background image */}
+      <div
+        className="absolute inset-0 bg-cover bg-center"
+        style={{ backgroundImage: "url('/auth-bg.png')" }}
+      />
+      <div className="absolute inset-0 bg-gradient-to-br from-background/92 via-background/88 to-primary/20" />
+
+      {/* Theme toggle */}
       <Button
         size="icon"
         variant="ghost"
         onClick={toggleTheme}
-        className="absolute top-4 right-4"
+        className="absolute top-4 right-4 z-20"
         data-testid="button-theme-toggle"
       >
         {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
       </Button>
 
-      <div className="w-full max-w-sm">
+      {/* Glass card */}
+      <div className="relative z-10 w-full max-w-sm bg-background/80 dark:bg-background/75 backdrop-blur-xl border border-border/60 rounded-2xl shadow-2xl p-8">
         <div className="mb-6">
           <img src="/logo.png" alt="Zalgo Edutech" className="h-8 w-auto mb-8" />
           <h2 className="text-2xl font-bold text-foreground">Forgot password?</h2>

@@ -34,11 +34,13 @@ export function ChatWidget() {
   const { data, isLoading } = useQuery<{ messages: ChatMessage[] }>({
     queryKey: ["/api/chat/messages"],
     refetchInterval: open ? 4000 : false,
+    enabled: !!user && user.role !== "admin",
   });
 
   const { data: unreadData } = useQuery<{ count: number }>({
     queryKey: ["/api/chat/unread"],
     refetchInterval: 10000,
+    enabled: !!user && user.role !== "admin",
   });
 
   const messages = data?.messages ?? [];

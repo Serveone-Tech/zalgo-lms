@@ -4,7 +4,7 @@ import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, Eye, EyeOff } from "lucide-react";
+import { Loader2, Eye, EyeOff, CheckCircle2 } from "lucide-react";
 import { useTheme } from "@/components/theme-provider";
 import { Moon, Sun } from "lucide-react";
 
@@ -34,34 +34,48 @@ export default function SignUpPage() {
 
   return (
     <div className="min-h-screen bg-background flex">
-      <div className="hidden lg:flex lg:w-1/2 bg-primary relative overflow-hidden flex-col justify-between p-12">
+      {/* Left panel with background image */}
+      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden flex-col justify-between p-12">
+        <div
+          className="absolute inset-0 bg-cover bg-center"
+          style={{ backgroundImage: "url('/auth-bg.png')" }}
+        />
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/90 via-primary/80 to-[#003d52]/90" />
+
         <div className="relative z-10">
           <img src="/logo.png" alt="Zalgo Edutech" className="h-10 w-auto brightness-0 invert mb-12" />
           <div className="mt-16">
             <h1 className="text-4xl font-bold text-white leading-tight mb-4">
               Start your<br />learning journey
             </h1>
-            <p className="text-white/70 text-lg">
+            <p className="text-white/75 text-lg">
               Join thousands of learners who are building their skills with our courses.
             </p>
           </div>
         </div>
+
         <div className="relative z-10 space-y-3">
-          {["Access to all courses", "Track your progress", "Earn completion certificates", "Learn at your own pace"].map(f => (
+          {[
+            "Access to all courses",
+            "Track your progress",
+            "Earn completion certificates",
+            "Learn at your own pace",
+          ].map(f => (
             <div key={f} className="flex items-center gap-3">
-              <div className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center">
-                <div className="w-2 h-2 rounded-full bg-white" />
+              <div className="w-6 h-6 rounded-full bg-white/15 backdrop-blur-sm border border-white/20 flex items-center justify-center flex-shrink-0">
+                <CheckCircle2 className="w-3.5 h-3.5 text-white" />
               </div>
-              <span className="text-white/80 text-sm">{f}</span>
+              <span className="text-white/85 text-sm">{f}</span>
             </div>
           ))}
         </div>
-        <div className="absolute inset-0 bg-gradient-to-br from-primary via-primary to-primary/70" />
-        <div className="absolute -bottom-24 -right-24 w-72 h-72 rounded-full bg-white/5" />
-        <div className="absolute -top-12 -left-12 w-48 h-48 rounded-full bg-white/5" />
+
+        <div className="absolute -bottom-24 -right-24 w-72 h-72 rounded-full bg-white/5 blur-2xl" />
+        <div className="absolute -top-12 -left-12 w-48 h-48 rounded-full bg-white/5 blur-xl" />
       </div>
 
-      <div className="flex-1 flex flex-col items-center justify-center p-8 relative">
+      {/* Right panel - form */}
+      <div className="flex-1 flex flex-col items-center justify-center p-8 relative bg-background">
         <Button size="icon" variant="ghost" onClick={toggleTheme} className="absolute top-4 right-4" data-testid="button-theme-toggle">
           {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
         </Button>
