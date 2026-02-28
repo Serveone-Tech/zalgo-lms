@@ -40,13 +40,13 @@ export default function ForgotPasswordPage() {
   };
 
   return (
-    <div className="min-h-screen relative flex flex-col items-center justify-center p-6">
-      {/* Full-page background image */}
+    <div className="min-h-screen relative flex items-center justify-center p-4">
+      {/* Full-screen background image with low opacity */}
       <div
         className="absolute inset-0 bg-cover bg-center"
         style={{ backgroundImage: "url('/auth-bg.png')" }}
       />
-      <div className="absolute inset-0 bg-gradient-to-br from-background/92 via-background/88 to-primary/20" />
+      <div className="absolute inset-0 bg-white/30 dark:bg-black/55" />
 
       {/* Theme toggle */}
       <Button
@@ -59,10 +59,13 @@ export default function ForgotPasswordPage() {
         {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
       </Button>
 
-      {/* Glass card */}
-      <div className="relative z-10 w-full max-w-sm bg-background/80 dark:bg-background/75 backdrop-blur-xl border border-border/60 rounded-2xl shadow-2xl p-8">
-        <div className="mb-6">
-          <img src="/logo.png" alt="Zalgo Edutech" className="h-8 w-auto mb-8" />
+      {/* Form card */}
+      <div className="relative z-10 w-full max-w-md bg-white/90 dark:bg-zinc-900/90 backdrop-blur-xl border border-border/60 rounded-2xl shadow-2xl p-8">
+        <div className="flex items-center gap-2 mb-8">
+          <img src="/logo.png" alt="Zalgo Edutech" className="h-9 w-auto" />
+        </div>
+
+        <div className="mb-7">
           <h2 className="text-2xl font-bold text-foreground">Forgot password?</h2>
           <p className="text-muted-foreground mt-1 text-sm">
             Enter your email and we'll send you a reset code.
@@ -106,7 +109,7 @@ export default function ForgotPasswordPage() {
                 <div>
                   <p className="text-sm font-medium text-green-800 dark:text-green-300">Reset code generated!</p>
                   <p className="text-xs text-green-700 dark:text-green-400 mt-1">
-                    In production, this code would be emailed to you. For demo purposes:
+                    In production, this code would be emailed to you. For demo:
                   </p>
                 </div>
               </div>
