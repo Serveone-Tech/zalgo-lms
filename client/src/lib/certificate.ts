@@ -202,13 +202,11 @@ export async function downloadCertificate(data: CertificateData) {
   // Center: Logo seal
   try {
     const logoBase64 = await loadBase64("/logo.png");
-    // Teal circle background
     doc.setFillColor(0, 118, 143);
     doc.circle(W / 2, bY, 10, "F");
     doc.setFillColor(255, 252, 242);
     doc.circle(W / 2, bY, 8.5, "F");
     doc.addImage(logoBase64, "PNG", W / 2 - 7, bY - 4, 14, 7);
-    // Gold ring
     doc.setDrawColor(201, 162, 39);
     doc.setLineWidth(0.8);
     doc.circle(W / 2, bY, 10);
@@ -235,6 +233,43 @@ export async function downloadCertificate(data: CertificateData) {
   doc.setDrawColor(201, 162, 39);
   doc.setLineWidth(0.4);
   doc.line(W - 94, bY + 6, W - 30, bY + 6);
+
+  // ─── Director signatures ───────────────────────────────────────
+  const sigY = bY + 16;
+
+  // Director 1 — Bhupendra Parmar (left)
+  try {
+    const sig1 = await loadBase64("/sig_bhupendra.png");
+    doc.addImage(sig1, "PNG", 28, sigY, 38, 16, undefined, "FAST");
+  } catch { /* skip */ }
+  doc.setDrawColor(80, 80, 80);
+  doc.setLineWidth(0.4);
+  doc.line(25, sigY + 18, 75, sigY + 18);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(8.5);
+  doc.setTextColor(20, 20, 20);
+  doc.text("Bhupendra Parmar", 50, sigY + 23, { align: "center" });
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(7.5);
+  doc.setTextColor(100, 100, 100);
+  doc.text("Director, Zalgo Edutech", 50, sigY + 28, { align: "center" });
+
+  // Director 2 — Lokendra Parmar (right)
+  try {
+    const sig2 = await loadBase64("/sig_lokendra.png");
+    doc.addImage(sig2, "PNG", W - 66, sigY, 38, 16, undefined, "FAST");
+  } catch { /* skip */ }
+  doc.setDrawColor(80, 80, 80);
+  doc.setLineWidth(0.4);
+  doc.line(W - 75, sigY + 18, W - 25, sigY + 18);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(8.5);
+  doc.setTextColor(20, 20, 20);
+  doc.text("Lokendra Parmar", W - 50, sigY + 23, { align: "center" });
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(7.5);
+  doc.setTextColor(100, 100, 100);
+  doc.text("Director, Zalgo Edutech", W - 50, sigY + 28, { align: "center" });
 
   // ─── Footer note ──────────────────────────────────────────────
   doc.setFontSize(6.5);

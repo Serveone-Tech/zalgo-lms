@@ -320,11 +320,10 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     if (!userId) return res.status(401).json({ message: "Not authenticated" });
     const enrollment = await storage.getEnrollment(userId, req.params.courseId);
     if (!enrollment) return res.status(403).json({ message: "Not enrolled in this course" });
-    const progress = await storage.getProgress(userId, req.params.courseId);
-    const modules = await storage.getModulesByCourse(req.params.courseId);
-    const allLectures = modules.flatMap((m: any) => m.lectures ?? []);
-    const completedCount = progress.filter((p: any) => p.completed).length;
-    const isCompleted = allLectures.length > 0 && completedCount >= allLectures.length;
+    const modules = await storage.getCourseModules(req.params.courseId);
+    const allLectures = (await Promise.all(modules.map((m: any) => storage.getModuleLectures(m.id)))).flat();
+    const completedIds = await storage.getCompletedLectures(userId, req.params.courseId);
+    const isCompleted = allLectures.length > 0 && completedIds.length >= allLectures.length;
     if (!isCompleted) return res.status(403).json({ message: "Course not yet completed" });
     const user = await storage.getUser(userId);
     const course = await storage.getCourse(req.params.courseId);

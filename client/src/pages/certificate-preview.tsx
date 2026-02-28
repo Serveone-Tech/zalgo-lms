@@ -246,6 +246,36 @@ export default function CertificatePreviewPage() {
                   <div className="h-px bg-[#C9A227] w-full mt-[0.5%]" />
                 </div>
               </div>
+
+              {/* Director signatures */}
+              <div className="flex justify-between items-end mt-[2%]">
+                {/* Director 1 */}
+                <div className="flex flex-col items-center gap-[0.4%]">
+                  <img
+                    src="/sig_bhupendra.png"
+                    alt="Bhupendra Parmar"
+                    style={{ height: "clamp(18px, 3.5vw, 34px)", objectFit: "contain", filter: "contrast(1.3)" }}
+                  />
+                  <div className="h-px w-full bg-gray-500" />
+                  <p className="font-bold text-gray-900" style={{ fontSize: "clamp(5px, 0.85vw, 8.5px)" }}>Bhupendra Parmar</p>
+                  <p className="text-gray-500" style={{ fontSize: "clamp(4px, 0.7vw, 7px)", fontFamily: "Arial, sans-serif" }}>Director, Zalgo Edutech</p>
+                </div>
+
+                {/* Spacer */}
+                <div style={{ width: "10%" }} />
+
+                {/* Director 2 */}
+                <div className="flex flex-col items-center gap-[0.4%]">
+                  <img
+                    src="/sig_lokendra.png"
+                    alt="Lokendra Parmar"
+                    style={{ height: "clamp(18px, 3.5vw, 34px)", objectFit: "contain", filter: "contrast(1.3)" }}
+                  />
+                  <div className="h-px w-full bg-gray-500" />
+                  <p className="font-bold text-gray-900" style={{ fontSize: "clamp(5px, 0.85vw, 8.5px)" }}>Lokendra Parmar</p>
+                  <p className="text-gray-500" style={{ fontSize: "clamp(4px, 0.7vw, 7px)", fontFamily: "Arial, sans-serif" }}>Director, Zalgo Edutech</p>
+                </div>
+              </div>
             </div>
           </div>
 

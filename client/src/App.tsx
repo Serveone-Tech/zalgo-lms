@@ -23,6 +23,7 @@ import AdminCouponsPage from "@/pages/admin/coupons";
 import AdminChatPage from "@/pages/admin-chat";
 import StudentChatPage from "@/pages/student-chat";
 import CertificatePreviewPage from "@/pages/certificate-preview";
+import CertificatesPage from "@/pages/certificates";
 import ResumeBuilderPage from "@/pages/resume-builder";
 import LeaderboardPage from "@/pages/leaderboard";
 import AppLayout from "@/components/layouts/app-layout";
@@ -167,6 +168,13 @@ function Router() {
         )}
       </Route>
       <Route path="/certificate-preview" component={CertificatePreviewPage} />
+      <Route path="/certificates">
+        {() => (
+          <AppLayout>
+            <ProtectedRoute component={CertificatesPage} />
+          </AppLayout>
+        )}
+      </Route>
       <Route path="/resume-builder">
         {() => (
           <AppLayout>
