@@ -10,6 +10,7 @@ import couponRoutes from "./coupon.routes";
 import leaderboardRoutes from "./leaderboard.routes";
 import chatRoutes from "./chat.routes";
 import adminRoutes from "./admin.routes";
+import uploadRoutes from "./upload.routes";
 
 export function applyRoutes(httpServer: Server, app: Express): Server {
   app.use("/api/auth", authRoutes);
@@ -22,5 +23,6 @@ export function applyRoutes(httpServer: Server, app: Express): Server {
   app.use("/api/coupons", couponRoutes);
   app.use("/api/leaderboard", leaderboardRoutes);
   app.use("/api/chat", chatRoutes);
+  app.use("/api/upload", uploadRoutes);
   return httpServer;
 }

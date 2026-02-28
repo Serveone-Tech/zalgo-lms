@@ -82,6 +82,22 @@ export const courseProgress = pgTable("course_progress", {
   completedAt: timestamp("completed_at").defaultNow(),
 });
 
+export const chatMessages = pgTable("chat_messages", {
+  id: varchar("id", { length: 36 }).primaryKey(),
+  studentId: varchar("student_id", { length: 36 }).notNull(),
+  studentName: text("student_name").notNull(),
+  content: text("content").notNull(),
+  isFromAdmin: boolean("is_from_admin").default(false),
+  timestamp: timestamp("timestamp").defaultNow(),
+  isRead: boolean("is_read").default(false),
+});
+
+export const passwordResetTokens = pgTable("password_reset_tokens", {
+  email: text("email").primaryKey(),
+  code: text("code").notNull(),
+  expiresAt: timestamp("expires_at").notNull(),
+});
+
 export const insertUserSchema = createInsertSchema(users).omit({ id: true, createdAt: true });
 export const insertCourseSchema = createInsertSchema(courses).omit({ id: true, createdAt: true });
 export const insertModuleSchema = createInsertSchema(modules).omit({ id: true, createdAt: true });
