@@ -34,13 +34,11 @@ export default function SignUpPage() {
 
   return (
     <div className="min-h-screen flex">
-      {/* Left panel — image */}
+      {/* Left panel — theme color */}
       <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden flex-col justify-between p-12">
-        <div
-          className="absolute inset-0 bg-cover bg-center"
-          style={{ backgroundImage: "url('/auth-bg.jpg')" }}
-        />
-        <div className="absolute inset-0 bg-gradient-to-br from-black/80 via-black/60 to-primary/50" />
+        <div className="absolute inset-0 bg-gradient-to-br from-primary via-primary to-primary/80" />
+        <div className="absolute -bottom-24 -right-24 w-72 h-72 rounded-full bg-white/5 blur-2xl" />
+        <div className="absolute -top-12 -left-12 w-48 h-48 rounded-full bg-white/5 blur-xl" />
 
         {/* Top: Logo */}
         <div className="relative z-10">
