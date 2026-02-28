@@ -1,16 +1,341 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
+import { insertUserSchema, insertCourseSchema, insertModuleSchema, insertLectureSchema, insertCouponSchema } from "@shared/schema";
+import { z } from "zod";
 
-export async function registerRoutes(
-  httpServer: Server,
-  app: Express
-): Promise<Server> {
-  // put application routes here
-  // prefix all routes with /api
+const SESSION_USER_KEY = "userId";
 
-  // use storage to perform CRUD operations on the storage interface
-  // e.g. storage.insertUser(user) or storage.getUserByUsername(username)
+export async function registerRoutes(httpServer: Server, app: Express): Promise<Server> {
+
+  // --- AUTH ---
+  app.post("/api/auth/signup", async (req, res) => {
+    try {
+      const body = insertUserSchema.parse(req.body);
+      const existing = await storage.getUserByEmail(body.email);
+      if (existing) return res.status(400).json({ message: "Email already registered" });
+      const user = await storage.createUser({ ...body, role: "user" });
+      (req.session as any)[SESSION_USER_KEY] = user.id;
+      const { password: _, ...safe } = user;
+      res.json({ user: safe });
+    } catch (err: any) {
+      res.status(400).json({ message: err.message });
+    }
+  });
+
+  app.post("/api/auth/signin", async (req, res) => {
+    try {
+      const { email, password } = req.body;
+      const user = await storage.getUserByEmail(email);
+      if (!user || user.password !== password) return res.status(401).json({ message: "Invalid credentials" });
+      (req.session as any)[SESSION_USER_KEY] = user.id;
+      const { password: _, ...safe } = user;
+      res.json({ user: safe });
+    } catch (err: any) {
+      res.status(400).json({ message: err.message });
+    }
+  });
+
+  app.post("/api/auth/signout", (req, res) => {
+    req.session.destroy(() => res.json({ success: true }));
+  });
+
+  app.get("/api/auth/me", async (req, res) => {
+    const userId = (req.session as any)[SESSION_USER_KEY];
+    if (!userId) return res.status(401).json({ message: "Not authenticated" });
+    const user = await storage.getUser(userId);
+    if (!user) return res.status(401).json({ message: "User not found" });
+    const { password: _, ...safe } = user;
+    res.json({ user: safe });
+  });
+
+  // --- USERS ---
+  app.get("/api/users/me", async (req, res) => {
+    const userId = (req.session as any)[SESSION_USER_KEY];
+    if (!userId) return res.status(401).json({ message: "Not authenticated" });
+    const user = await storage.getUser(userId);
+    if (!user) return res.status(404).json({ message: "User not found" });
+    const { password: _, ...safe } = user;
+    res.json({ user: safe });
+  });
+
+  app.patch("/api/users/me", async (req, res) => {
+    const userId = (req.session as any)[SESSION_USER_KEY];
+    if (!userId) return res.status(401).json({ message: "Not authenticated" });
+    const { userName, description, photoUrl } = req.body;
+    const updated = await storage.updateUser(userId, { userName, description, photoUrl });
+    if (!updated) return res.status(404).json({ message: "User not found" });
+    const { password: _, ...safe } = updated;
+    res.json({ user: safe });
+  });
+
+  app.get("/api/admin/users", async (req, res) => {
+    const userId = (req.session as any)[SESSION_USER_KEY];
+    const user = userId ? await storage.getUser(userId) : null;
+    if (!user || user.role !== "admin") return res.status(403).json({ message: "Forbidden" });
+    const allUsers = await storage.getAllUsers();
+    const allOrders = await Promise.all(allUsers.map(async u => {
+      const orders = await storage.getUserOrders(u.id);
+      return { userId: u.id, orders };
+    }));
+    const usersWithStats = allUsers.map(u => {
+      const { password: _, ...safe } = u;
+      const userOrders = allOrders.find(o => o.userId === u.id)?.orders ?? [];
+      return {
+        ...safe,
+        ordersCount: userOrders.length,
+        totalPaid: userOrders.reduce((s, o) => s + o.amount, 0),
+      };
+    });
+    res.json({ users: usersWithStats });
+  });
+
+  // --- COURSES ---
+  app.get("/api/courses", async (req, res) => {
+    const courses = await storage.getPublishedCourses();
+    res.json({ courses });
+  });
+
+  app.get("/api/courses/admin", async (req, res) => {
+    const userId = (req.session as any)[SESSION_USER_KEY];
+    const user = userId ? await storage.getUser(userId) : null;
+    if (!user || user.role !== "admin") return res.status(403).json({ message: "Forbidden" });
+    const courses = await storage.getCoursesByCreator(userId);
+    res.json({ courses });
+  });
+
+  app.get("/api/courses/enrolled", async (req, res) => {
+    const userId = (req.session as any)[SESSION_USER_KEY];
+    if (!userId) return res.status(401).json({ message: "Not authenticated" });
+    const enrollments = await storage.getUserEnrollments(userId);
+    const courses = await Promise.all(enrollments.map(async e => {
+      const course = await storage.getCourse(e.courseId);
+      return course ? { ...course, progress: e.progress } : null;
+    }));
+    res.json({ courses: courses.filter(Boolean) });
+  });
+
+  app.get("/api/courses/:id", async (req, res) => {
+    const course = await storage.getCourse(req.params.id);
+    if (!course) return res.status(404).json({ message: "Course not found" });
+    res.json({ course });
+  });
+
+  app.post("/api/courses", async (req, res) => {
+    const userId = (req.session as any)[SESSION_USER_KEY];
+    const user = userId ? await storage.getUser(userId) : null;
+    if (!user || user.role !== "admin") return res.status(403).json({ message: "Forbidden" });
+    try {
+      const body = insertCourseSchema.parse({ ...req.body, creatorId: userId });
+      const course = await storage.createCourse(body);
+      res.json({ course });
+    } catch (err: any) {
+      res.status(400).json({ message: err.message });
+    }
+  });
+
+  app.patch("/api/courses/:id", async (req, res) => {
+    const userId = (req.session as any)[SESSION_USER_KEY];
+    const user = userId ? await storage.getUser(userId) : null;
+    if (!user || user.role !== "admin") return res.status(403).json({ message: "Forbidden" });
+    const updated = await storage.updateCourse(req.params.id, req.body);
+    if (!updated) return res.status(404).json({ message: "Course not found" });
+    res.json({ course: updated });
+  });
+
+  app.delete("/api/courses/:id", async (req, res) => {
+    const userId = (req.session as any)[SESSION_USER_KEY];
+    const user = userId ? await storage.getUser(userId) : null;
+    if (!user || user.role !== "admin") return res.status(403).json({ message: "Forbidden" });
+    await storage.deleteCourse(req.params.id);
+    res.json({ success: true });
+  });
+
+  // --- MODULES ---
+  app.get("/api/courses/:courseId/modules", async (req, res) => {
+    const modules = await storage.getCourseModules(req.params.courseId);
+    const modulesWithLectures = await Promise.all(modules.map(async m => {
+      const lectures = await storage.getModuleLectures(m.id);
+      return { ...m, lectures };
+    }));
+    res.json({ modules: modulesWithLectures });
+  });
+
+  app.post("/api/courses/:courseId/modules", async (req, res) => {
+    const userId = (req.session as any)[SESSION_USER_KEY];
+    const user = userId ? await storage.getUser(userId) : null;
+    if (!user || user.role !== "admin") return res.status(403).json({ message: "Forbidden" });
+    const modules = await storage.getCourseModules(req.params.courseId);
+    const module = await storage.createModule({
+      courseId: req.params.courseId,
+      title: req.body.title,
+      order: modules.length,
+    });
+    res.json({ module });
+  });
+
+  app.patch("/api/modules/:id", async (req, res) => {
+    const userId = (req.session as any)[SESSION_USER_KEY];
+    const user = userId ? await storage.getUser(userId) : null;
+    if (!user || user.role !== "admin") return res.status(403).json({ message: "Forbidden" });
+    const updated = await storage.updateModule(req.params.id, req.body);
+    if (!updated) return res.status(404).json({ message: "Module not found" });
+    res.json({ module: updated });
+  });
+
+  app.delete("/api/modules/:id", async (req, res) => {
+    const userId = (req.session as any)[SESSION_USER_KEY];
+    const user = userId ? await storage.getUser(userId) : null;
+    if (!user || user.role !== "admin") return res.status(403).json({ message: "Forbidden" });
+    await storage.deleteModule(req.params.id);
+    res.json({ success: true });
+  });
+
+  // --- LECTURES ---
+  app.post("/api/modules/:moduleId/lectures", async (req, res) => {
+    const userId = (req.session as any)[SESSION_USER_KEY];
+    const user = userId ? await storage.getUser(userId) : null;
+    if (!user || user.role !== "admin") return res.status(403).json({ message: "Forbidden" });
+    const existing = await storage.getModuleLectures(req.params.moduleId);
+    const lecture = await storage.createLecture({
+      moduleId: req.params.moduleId,
+      title: req.body.title,
+      videoUrl: req.body.videoUrl,
+      duration: req.body.duration ?? 0,
+      order: existing.length,
+    });
+    res.json({ lecture });
+  });
+
+  app.patch("/api/lectures/:id", async (req, res) => {
+    const userId = (req.session as any)[SESSION_USER_KEY];
+    const user = userId ? await storage.getUser(userId) : null;
+    if (!user || user.role !== "admin") return res.status(403).json({ message: "Forbidden" });
+    const updated = await storage.updateLecture(req.params.id, req.body);
+    if (!updated) return res.status(404).json({ message: "Lecture not found" });
+    res.json({ lecture: updated });
+  });
+
+  app.delete("/api/lectures/:id", async (req, res) => {
+    const userId = (req.session as any)[SESSION_USER_KEY];
+    const user = userId ? await storage.getUser(userId) : null;
+    if (!user || user.role !== "admin") return res.status(403).json({ message: "Forbidden" });
+    await storage.deleteLecture(req.params.id);
+    res.json({ success: true });
+  });
+
+  // --- ENROLLMENTS & PROGRESS ---
+  app.post("/api/enroll", async (req, res) => {
+    const userId = (req.session as any)[SESSION_USER_KEY];
+    if (!userId) return res.status(401).json({ message: "Not authenticated" });
+    const { courseId, amount, couponId } = req.body;
+    const existing = await storage.getEnrollment(userId, courseId);
+    if (existing) return res.status(400).json({ message: "Already enrolled" });
+    await storage.createEnrollment({ userId, courseId, progress: 0 });
+    await storage.createOrder({ userId, courseId, amount: amount ?? 0, couponId, status: "completed" });
+    if (couponId) await storage.incrementCouponUsage(couponId);
+    res.json({ success: true });
+  });
+
+  app.get("/api/courses/:courseId/enrollment", async (req, res) => {
+    const userId = (req.session as any)[SESSION_USER_KEY];
+    if (!userId) return res.status(401).json({ message: "Not authenticated" });
+    const enrollment = await storage.getEnrollment(userId, req.params.courseId);
+    res.json({ enrolled: !!enrollment, enrollment });
+  });
+
+  app.post("/api/courses/:courseId/lectures/:lectureId/complete", async (req, res) => {
+    const userId = (req.session as any)[SESSION_USER_KEY];
+    if (!userId) return res.status(401).json({ message: "Not authenticated" });
+    await storage.markLectureComplete(userId, req.params.courseId, req.params.lectureId);
+    const modules = await storage.getCourseModules(req.params.courseId);
+    const allLectures = (await Promise.all(modules.map(m => storage.getModuleLectures(m.id)))).flat();
+    const completed = await storage.getCompletedLectures(userId, req.params.courseId);
+    const progress = allLectures.length ? Math.round((completed.length / allLectures.length) * 100) : 0;
+    await storage.updateEnrollmentProgress(userId, req.params.courseId, progress);
+    res.json({ progress, completed });
+  });
+
+  app.get("/api/courses/:courseId/progress", async (req, res) => {
+    const userId = (req.session as any)[SESSION_USER_KEY];
+    if (!userId) return res.status(401).json({ message: "Not authenticated" });
+    const completed = await storage.getCompletedLectures(userId, req.params.courseId);
+    res.json({ completed });
+  });
+
+  // --- COUPONS ---
+  app.get("/api/coupons", async (req, res) => {
+    const userId = (req.session as any)[SESSION_USER_KEY];
+    const user = userId ? await storage.getUser(userId) : null;
+    if (user?.role === "admin") {
+      const coupons = await storage.getAllCoupons();
+      return res.json({ coupons });
+    }
+    const coupons = await storage.getActiveCoupons();
+    res.json({ coupons });
+  });
+
+  app.post("/api/coupons/apply", async (req, res) => {
+    const { code, coursePrice } = req.body;
+    const coupon = await storage.getCouponByCode(code);
+    if (!coupon || !coupon.isActive) return res.status(400).json({ message: "Invalid or expired coupon" });
+    if (coupon.expiresAt && coupon.expiresAt < new Date()) return res.status(400).json({ message: "Coupon expired" });
+    if (coupon.usageLimit && (coupon.usedCount ?? 0) >= coupon.usageLimit) return res.status(400).json({ message: "Coupon usage limit reached" });
+    const discount = (coursePrice * coupon.discountPercent) / 100;
+    const finalAmount = coursePrice - discount;
+    res.json({ couponId: coupon.id, discount, finalAmount, discountPercent: coupon.discountPercent });
+  });
+
+  app.post("/api/coupons", async (req, res) => {
+    const userId = (req.session as any)[SESSION_USER_KEY];
+    const user = userId ? await storage.getUser(userId) : null;
+    if (!user || user.role !== "admin") return res.status(403).json({ message: "Forbidden" });
+    try {
+      const body = insertCouponSchema.parse(req.body);
+      const coupon = await storage.createCoupon(body);
+      res.json({ coupon });
+    } catch (err: any) {
+      res.status(400).json({ message: err.message });
+    }
+  });
+
+  app.patch("/api/coupons/:id", async (req, res) => {
+    const userId = (req.session as any)[SESSION_USER_KEY];
+    const user = userId ? await storage.getUser(userId) : null;
+    if (!user || user.role !== "admin") return res.status(403).json({ message: "Forbidden" });
+    const updated = await storage.updateCoupon(req.params.id, req.body);
+    if (!updated) return res.status(404).json({ message: "Coupon not found" });
+    res.json({ coupon: updated });
+  });
+
+  app.delete("/api/coupons/:id", async (req, res) => {
+    const userId = (req.session as any)[SESSION_USER_KEY];
+    const user = userId ? await storage.getUser(userId) : null;
+    if (!user || user.role !== "admin") return res.status(403).json({ message: "Forbidden" });
+    await storage.deleteCoupon(req.params.id);
+    res.json({ success: true });
+  });
+
+  // --- ADMIN STATS ---
+  app.get("/api/admin/stats", async (req, res) => {
+    const userId = (req.session as any)[SESSION_USER_KEY];
+    const user = userId ? await storage.getUser(userId) : null;
+    if (!user || user.role !== "admin") return res.status(403).json({ message: "Forbidden" });
+    const [allCourses, allUsers, stats, activeCoupons] = await Promise.all([
+      storage.getAllCourses(),
+      storage.getAllUsers(),
+      storage.getOrderStats(),
+      storage.getActiveCoupons(),
+    ]);
+    res.json({
+      totalCourses: allCourses.length,
+      publishedCourses: allCourses.filter(c => c.isPublished).length,
+      totalUsers: allUsers.filter(u => u.role === "user").length,
+      totalRevenue: stats.totalRevenue,
+      totalOrders: stats.totalOrders,
+      activeCoupons: activeCoupons.length,
+    });
+  });
 
   return httpServer;
 }
