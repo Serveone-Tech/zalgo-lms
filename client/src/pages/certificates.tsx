@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Award, Lock, Download, BookOpen, CheckCircle2, Star } from "lucide-react";
 import { downloadCertificate } from "@/lib/certificate";
+import { CertificateCard } from "@/pages/certificate-preview";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -166,117 +167,21 @@ export default function CertificatesPage() {
             </div>
           )}
 
-          {/* Sample certificate HTML */}
+          {/* Sample certificate — new design, shared component */}
           <div
-            className="w-full rounded-xl overflow-hidden shadow-2xl border"
-            style={{ fontFamily: "Georgia, 'Times New Roman', serif", backgroundColor: "#FFFCF2", filter: completed.length === 0 ? "blur(3px)" : "none", transition: "filter 0.3s" }}
+            style={{
+              filter: completed.length === 0 ? "blur(2px)" : "none",
+              transition: "filter 0.3s",
+              pointerEvents: completed.length === 0 ? "none" : "auto",
+            }}
           >
-            {/* Top teal band */}
-            <div style={{ background: "#00768F", height: 40 }} />
-            <div style={{ height: 6, background: "#C9A227" }} />
-
-            <div style={{ padding: "28px 36px" }}>
-              {/* Logo + brand */}
-              <div style={{ textAlign: "center", marginBottom: 16 }}>
-                <img src="/logo.png" alt="Zalgo Edutech" style={{ height: 36, objectFit: "contain" }} />
-                <p style={{ fontSize: 10, fontFamily: "Arial, sans-serif", letterSpacing: "0.3em", color: "#00768F", fontWeight: 700, marginTop: 4 }}>ZALGO EDUTECH</p>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, justifyContent: "center", marginTop: 6 }}>
-                  <div style={{ flex: 1, height: 1, background: "#C9A227" }} />
-                  <div style={{ width: 8, height: 8, background: "#C9A227", transform: "rotate(45deg)" }} />
-                  <div style={{ flex: 1, height: 1, background: "#C9A227" }} />
-                </div>
-              </div>
-
-              {/* Title */}
-              <div style={{ textAlign: "center", marginBottom: 18 }}>
-                <h1 style={{ fontSize: 26, fontWeight: 700, fontStyle: "italic", color: "#111", margin: 0 }}>Certificate of Completion</h1>
-                <div style={{ width: 120, height: 1.5, background: "#C9A227", margin: "8px auto 0" }} />
-              </div>
-
-              {/* Certify text */}
-              <p style={{ textAlign: "center", fontSize: 11, color: "#888", fontStyle: "italic", marginBottom: 6 }}>This is to certify that</p>
-
-              {/* Name */}
-              <div style={{ textAlign: "center", marginBottom: 6 }}>
-                <p style={{ fontSize: 30, fontWeight: 700, color: "#00768F", margin: 0 }}>{user?.userName ?? "Student Name"}</p>
-                <div style={{ height: 2.5, background: "#00A2C2", maxWidth: 280, margin: "4px auto 0" }} />
-                <div style={{ height: 1, background: "#C9A227", maxWidth: 200, margin: "3px auto 0", opacity: 0.7 }} />
-              </div>
-
-              <p style={{ textAlign: "center", fontSize: 11, color: "#777", fontStyle: "italic", marginBottom: 10 }}>has successfully completed the online course</p>
-
-              {/* Course placeholder */}
-              <p style={{ textAlign: "center", fontSize: 18, fontWeight: 700, color: "#111", marginBottom: 8, fontFamily: "Arial, sans-serif" }}>
-                {inProgress[0]?.title ?? "Your Course Title"}
-              </p>
-
-              {/* Category */}
-              <div style={{ display: "flex", justifyContent: "center", marginBottom: 20 }}>
-                <span style={{ border: "1px solid #00768F", color: "#00768F", background: "#E6F8FC", fontSize: 9, fontFamily: "Arial, sans-serif", letterSpacing: "0.15em", padding: "3px 14px", fontWeight: 700 }}>
-                  {inProgress[0]?.category?.toUpperCase() ?? "CATEGORY"}
-                </span>
-              </div>
-
-              {/* Dividers */}
-              <div style={{ height: 1.5, background: "#C9A227", marginBottom: 3 }} />
-              <div style={{ height: 1, background: "#00768F", opacity: 0.2, marginBottom: 16 }} />
-
-              {/* Bottom row: Date | Seal | CertID */}
-              <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 16 }}>
-                {/* Date */}
-                <div style={{ textAlign: "center" }}>
-                  <p style={{ fontSize: 7, fontFamily: "Arial, sans-serif", fontWeight: 700, letterSpacing: "0.15em", color: "#888", marginBottom: 2 }}>DATE OF COMPLETION</p>
-                  <p style={{ fontSize: 10, color: "#222" }}>{new Date().toLocaleDateString("en-IN", { year: "numeric", month: "long", day: "numeric" })}</p>
-                  <div style={{ height: 1, background: "#C9A227", marginTop: 4 }} />
-                </div>
-
-                {/* Seal */}
-                <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-                  <div style={{ width: 56, height: 56, borderRadius: "50%", background: "#00768F", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 0 0 2px #C9A227" }}>
-                    <div style={{ width: 46, height: 46, borderRadius: "50%", background: "#FFFCF2", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                      <img src="/logo.png" alt="ZE" style={{ width: 32, objectFit: "contain" }} />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Cert ID */}
-                <div style={{ textAlign: "center" }}>
-                  <p style={{ fontSize: 7, fontFamily: "Arial, sans-serif", fontWeight: 700, letterSpacing: "0.15em", color: "#888", marginBottom: 2 }}>CERTIFICATE ID</p>
-                  <p style={{ fontSize: 10, fontFamily: "'Courier New', monospace", color: "#222" }}>ZE-XXXX-XXXX-XXXXX</p>
-                  <div style={{ height: 1, background: "#C9A227", marginTop: 4 }} />
-                </div>
-              </div>
-
-              {/* ── Director signatures ── */}
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: 16 }}>
-                {/* Director 1 */}
-                <div style={{ textAlign: "center", flex: 1 }}>
-                  <img src="/sig_bhupendra.png" alt="Bhupendra Parmar Signature" style={{ height: 48, objectFit: "contain", marginBottom: 4, filter: "contrast(1.3)" }} />
-                  <div style={{ height: 1, background: "#555", marginBottom: 4 }} />
-                  <p style={{ fontSize: 11, fontWeight: 700, color: "#111", margin: 0 }}>Bhupendra Parmar</p>
-                  <p style={{ fontSize: 9, color: "#888", fontFamily: "Arial, sans-serif", marginTop: 1 }}>Director, Zalgo Edutech</p>
-                </div>
-
-                {/* Center gap (where seal is) */}
-                <div style={{ width: 64 }} />
-
-                {/* Director 2 */}
-                <div style={{ textAlign: "center", flex: 1 }}>
-                  <img src="/sig_lokendra.png" alt="Lokendra Parmar Signature" style={{ height: 48, objectFit: "contain", marginBottom: 4, filter: "contrast(1.3)" }} />
-                  <div style={{ height: 1, background: "#555", marginBottom: 4 }} />
-                  <p style={{ fontSize: 11, fontWeight: 700, color: "#111", margin: 0 }}>Lokendra Parmar</p>
-                  <p style={{ fontSize: 9, color: "#888", fontFamily: "Arial, sans-serif", marginTop: 1 }}>Director, Zalgo Edutech</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Bottom teal band */}
-            <div style={{ height: 6, background: "#C9A227" }} />
-            <div style={{ background: "#00768F", padding: "6px 20px", textAlign: "center" }}>
-              <p style={{ fontSize: 8, color: "rgba(255,255,255,0.6)", fontFamily: "Arial, sans-serif", margin: 0 }}>
-                Zalgo Edutech  •  This certificate is issued digitally and is valid without a physical signature.
-              </p>
-            </div>
+            <CertificateCard
+              studentName={user?.userName ?? "Student Name"}
+              courseName={inProgress[0]?.title ?? completed[0]?.title ?? "Your Course Title"}
+              category={inProgress[0]?.category ?? completed[0]?.category ?? "Category"}
+              date={new Date().toLocaleDateString("en-IN", { year: "numeric", month: "long", day: "numeric" })}
+              certId="ZE-XXXX-XXXX-XXXXX"
+            />
           </div>
         </div>
       </div>

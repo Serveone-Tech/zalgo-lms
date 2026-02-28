@@ -24,261 +24,217 @@ export async function downloadCertificate(data: CertificateData) {
   const W = 297;
   const H = 210;
 
-  // ─── Background ───────────────────────────────────────────────
-  doc.setFillColor(255, 252, 242);
-  doc.rect(0, 0, W, H, "F");
+  const NAVY: [number, number, number] = [11, 31, 58];
+  const GOLD: [number, number, number] = [212, 175, 55];
+  const WHITE: [number, number, number] = [255, 255, 255];
+  const GRAY: [number, number, number] = [120, 120, 120];
 
-  // Subtle teal top & bottom accent bands
-  doc.setFillColor(0, 118, 143);
-  doc.rect(0, 0, W, 10, "F");
-  doc.rect(0, H - 10, W, 10, "F");
+  // ── NAVY HEADER (y = 0 → 34) ─────────────────────────────────
+  doc.setFillColor(...NAVY);
+  doc.rect(0, 0, W, 34, "F");
 
-  // Gold strip inside bands
-  doc.setFillColor(201, 162, 39);
-  doc.rect(0, 10, W, 2, "F");
-  doc.rect(0, H - 12, W, 2, "F");
+  // Diagonal pattern lines (subtle gold tint)
+  doc.setDrawColor(212, 175, 55);
+  doc.setLineWidth(0.1);
+  for (let x = -20; x < W + 20; x += 14) {
+    doc.line(x, 0, x + 34, 34);
+  }
 
-  // ─── Outer frame ──────────────────────────────────────────────
-  // Outer teal rect
-  doc.setDrawColor(0, 118, 143);
-  doc.setLineWidth(2);
-  doc.rect(14, 16, W - 28, H - 32);
-
-  // Inner gold rect
-  doc.setDrawColor(201, 162, 39);
-  doc.setLineWidth(0.7);
-  doc.rect(17, 19, W - 34, H - 38);
-
-  // ─── Corner ornaments (gold L-brackets) ───────────────────────
-  const gold = [201, 162, 39] as const;
-  const teal = [0, 118, 143] as const;
-  const cs = 10; // corner size
-  const ci = 14; // corner inset
-  const corners: [number, number, number, number][] = [
-    [ci, ci, 1, 1],
-    [W - ci - cs, ci, -1, 1],
-    [ci, H - ci - cs, 1, -1],
-    [W - ci - cs, H - ci - cs, -1, -1],
-  ];
-  corners.forEach(([x, y, sx, sy]) => {
-    // Filled teal square
-    doc.setFillColor(...teal);
-    doc.rect(x, y, cs, cs, "F");
-    // Gold overlay L-bracket
-    doc.setFillColor(...gold);
-    doc.rect(x + (sx > 0 ? 0 : cs - 2.5), y, 2.5, cs, "F");
-    doc.rect(x, y + (sy > 0 ? 0 : cs - 2.5), cs, 2.5, "F");
-  });
-
-  // ─── Watermark text ───────────────────────────────────────────
-  doc.setTextColor(230, 220, 200);
-  doc.setFontSize(72);
-  doc.setFont("helvetica", "bold");
-  doc.text("CERTIFICATE", W / 2, H / 2 + 10, { align: "center", angle: 0 });
-
-  // ─── Logo ─────────────────────────────────────────────────────
+  // Logo in header (try to load; fallback to text)
   try {
     const logoBase64 = await loadBase64("/logo.png");
-    const logoW = 28;
-    const logoH = 14;
-    doc.addImage(logoBase64, "PNG", W / 2 - logoW / 2, 20, logoW, logoH);
+    // White rounded backing so logo is visible on dark bg
+    doc.setFillColor(...WHITE);
+    doc.roundedRect(W / 2 - 20, 5, 40, 20, 2, 2, "F");
+    doc.addImage(logoBase64, "PNG", W / 2 - 16, 7, 32, 16);
   } catch {
-    // Fallback: brand text only
-    doc.setFontSize(14);
+    doc.setFontSize(13);
     doc.setFont("helvetica", "bold");
-    doc.setTextColor(0, 118, 143);
-    doc.text("ZALGO EDUTECH", W / 2, 30, { align: "center" });
+    doc.setTextColor(...GOLD);
+    doc.text("ZALGO EDUTECH", W / 2, 20, { align: "center" });
   }
 
   // Brand name below logo
-  doc.setFontSize(9.5);
+  doc.setFontSize(8.5);
   doc.setFont("helvetica", "bold");
-  doc.setTextColor(0, 118, 143);
-  doc.setCharSpace(2.5);
-  doc.text("ZALGO EDUTECH", W / 2, 37, { align: "center" });
+  doc.setTextColor(...GOLD);
+  doc.setCharSpace(3.2);
+  doc.text("ZALGO EDUTECH", W / 2, 30, { align: "center" });
   doc.setCharSpace(0);
 
-  // ─── Diamond divider ──────────────────────────────────────────
-  const drawDiamondDivider = (y: number) => {
-    doc.setDrawColor(...gold);
-    doc.setLineWidth(0.4);
-    doc.line(W / 2 - 55, y, W / 2 - 8, y);
-    doc.line(W / 2 + 8, y, W / 2 + 55, y);
-    // Diamond
-    doc.setFillColor(...gold);
-    const d = 2.5;
-    doc.lines([[d, -d], [d, d], [-d, d], [-d, -d]], W / 2 - d, y, [1, 1], "F");
-  };
-  drawDiamondDivider(41);
+  // ── GOLD RULE (y = 34 → 38) ──────────────────────────────────
+  doc.setFillColor(...GOLD);
+  doc.rect(0, 34, W, 4, "F");
 
-  // ─── Certificate title ────────────────────────────────────────
-  doc.setFontSize(24);
-  doc.setFont("times", "bolditalic");
-  doc.setTextColor(30, 30, 30);
-  doc.text("Certificate of Completion", W / 2, 54, { align: "center" });
-
-  // Thin line under title
-  doc.setDrawColor(201, 162, 39);
-  doc.setLineWidth(0.4);
-  doc.line(W / 2 - 50, 57, W / 2 + 50, 57);
-
-  // ─── This is to certify ───────────────────────────────────────
-  doc.setFontSize(10);
-  doc.setFont("times", "italic");
-  doc.setTextColor(100, 100, 100);
-  doc.text("This is to certify that", W / 2, 66, { align: "center" });
-
-  // ─── Student name ─────────────────────────────────────────────
-  doc.setFontSize(30);
-  doc.setFont("times", "bold");
-  doc.setTextColor(0, 118, 143);
-  doc.text(data.studentName, W / 2, 80, { align: "center" });
-
-  // Name underline with flourish
-  const nameW = doc.getTextWidth(data.studentName);
-  doc.setDrawColor(0, 162, 194);
-  doc.setLineWidth(0.9);
-  doc.line(W / 2 - nameW / 2, 83, W / 2 + nameW / 2, 83);
-  doc.setDrawColor(201, 162, 39);
-  doc.setLineWidth(0.4);
-  doc.line(W / 2 - nameW / 2 + 4, 85, W / 2 + nameW / 2 - 4, 85);
-
-  // ─── Completion text ──────────────────────────────────────────
-  doc.setFontSize(10);
-  doc.setFont("times", "italic");
-  doc.setTextColor(80, 80, 80);
-  doc.text("has successfully completed the online course", W / 2, 93, { align: "center" });
-
-  // ─── Course name ──────────────────────────────────────────────
-  doc.setFontSize(16);
+  // ── CERTIFICATE OF COMPLETION label ──────────────────────────
+  doc.setFontSize(9);
   doc.setFont("helvetica", "bold");
-  doc.setTextColor(20, 20, 20);
-  const courseLines = doc.splitTextToSize(data.courseName, 180);
+  doc.setTextColor(...GOLD);
+  doc.setCharSpace(2.8);
+  doc.text("CERTIFICATE OF COMPLETION", W / 2, 50, { align: "center" });
+  doc.setCharSpace(0);
+
+  // Navy accent line under label
+  doc.setFillColor(...NAVY);
+  doc.rect(W / 2 - 42, 54, 84, 1.5, "F");
+
+  // ── "This is to certify that" ─────────────────────────────────
+  doc.setFontSize(10);
+  doc.setFont("times", "italic");
+  doc.setTextColor(150, 150, 150);
+  doc.text("This is to certify that", W / 2, 64, { align: "center" });
+
+  // ── Student Name ──────────────────────────────────────────────
+  doc.setFontSize(28);
+  doc.setFont("times", "bold");
+  doc.setTextColor(...NAVY);
+  doc.text(data.studentName, W / 2, 78, { align: "center" });
+
+  // Gold underline
+  doc.setFillColor(...GOLD);
+  doc.rect(W / 2 - 58, 82, 116, 2.5, "F");
+
+  // ── "has successfully completed" ──────────────────────────────
+  doc.setFontSize(10);
+  doc.setFont("times", "italic");
+  doc.setTextColor(150, 150, 150);
+  doc.text("has successfully completed the online course", W / 2, 92, { align: "center" });
+
+  // ── Course Name ───────────────────────────────────────────────
+  doc.setFontSize(15);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(...NAVY);
+  const courseLines = doc.splitTextToSize(data.courseName, 200);
   doc.text(courseLines, W / 2, 103, { align: "center" });
 
-  // ─── Category badge ───────────────────────────────────────────
-  const catY = courseLines.length > 1 ? 118 : 113;
+  // ── Category Badge ────────────────────────────────────────────
+  const catY = courseLines.length > 1 ? 120 : 112;
   const catText = data.category.toUpperCase();
   doc.setFontSize(7.5);
   doc.setFont("helvetica", "bold");
-  doc.setTextColor(0, 118, 143);
-  const catW2 = doc.getTextWidth(catText) + 12;
-  doc.setFillColor(230, 248, 252);
-  doc.setDrawColor(0, 118, 143);
-  doc.setLineWidth(0.5);
-  doc.roundedRect(W / 2 - catW2 / 2, catY - 4.5, catW2, 7, 1.5, 1.5, "FD");
+  doc.setTextColor(...NAVY);
+  doc.setDrawColor(...NAVY);
+  doc.setLineWidth(0.9);
+  const catW = doc.getTextWidth(catText) + 14;
+  doc.rect(W / 2 - catW / 2, catY - 4.5, catW, 7.5, "D");
   doc.text(catText, W / 2, catY, { align: "center" });
 
-  // ─── Bottom divider ───────────────────────────────────────────
-  const divY = catY + 11;
-  doc.setDrawColor(201, 162, 39);
-  doc.setLineWidth(0.5);
-  doc.line(25, divY, W - 25, divY);
-  doc.setDrawColor(0, 118, 143);
-  doc.setLineWidth(0.2);
-  doc.line(25, divY + 1.2, W - 25, divY + 1.2);
+  // ── Divider before signatures ─────────────────────────────────
+  const divY = catY + 13;
+  doc.setFillColor(...GOLD);
+  doc.rect(24, divY, W - 48, 1.5, "F");
 
-  // ─── Bottom row ───────────────────────────────────────────────
-  const bY = divY + 11;
+  // ── SIGNATURE SECTION ─────────────────────────────────────────
+  const sigTop = divY + 8;
+
+  // Director 1 — Bhupendra Parmar (left side)
+  try {
+    const sig1 = await loadBase64("/sig_bhupendra.png");
+    doc.addImage(sig1, "PNG", 22, sigTop, 52, 21, undefined, "FAST");
+  } catch { /* skip */ }
+  doc.setDrawColor(60, 60, 60);
+  doc.setLineWidth(0.6);
+  doc.line(20, sigTop + 23, 85, sigTop + 23);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(8.5);
+  doc.setTextColor(...NAVY);
+  doc.text("Bhupendra Parmar", 52, sigTop + 28, { align: "center" });
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(7.5);
+  doc.setTextColor(...GRAY);
+  doc.text("Director, Zalgo Edutech", 52, sigTop + 33, { align: "center" });
+
+  // Director 2 — Lokendra Parmar (right side)
+  try {
+    const sig2 = await loadBase64("/sig_lokendra.png");
+    doc.addImage(sig2, "PNG", W - 74, sigTop, 52, 21, undefined, "FAST");
+  } catch { /* skip */ }
+  doc.setDrawColor(60, 60, 60);
+  doc.setLineWidth(0.6);
+  doc.line(W - 85, sigTop + 23, W - 20, sigTop + 23);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(8.5);
+  doc.setTextColor(...NAVY);
+  doc.text("Lokendra Parmar", W - 52, sigTop + 28, { align: "center" });
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(7.5);
+  doc.setTextColor(...GRAY);
+  doc.text("Director, Zalgo Edutech", W - 52, sigTop + 33, { align: "center" });
+
+  // ── Central Seal ──────────────────────────────────────────────
+  const sealCX = W / 2;
+  const sealCY = sigTop + 14;
+  const sealR = 14;
+
+  doc.setFillColor(...NAVY);
+  doc.circle(sealCX, sealCY, sealR, "F");
+  doc.setDrawColor(...GOLD);
+  doc.setLineWidth(1.2);
+  doc.circle(sealCX, sealCY, sealR);
+  doc.setFillColor(...WHITE);
+  doc.circle(sealCX, sealCY, sealR - 2.5, "F");
+
+  try {
+    const logoBase64 = await loadBase64("/logo.png");
+    doc.addImage(logoBase64, "PNG", sealCX - 8.5, sealCY - 5, 17, 9);
+  } catch {
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(...NAVY);
+    doc.text("ZE", sealCX, sealCY + 1, { align: "center" });
+  }
+
+  // "CERTIFIED" below seal
+  doc.setFontSize(6);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(...GOLD);
+  doc.setCharSpace(1.5);
+  doc.text("CERTIFIED", sealCX, sigTop + 33, { align: "center" });
+  doc.setCharSpace(0);
+
+  // ── GOLD RULE → FOOTER ────────────────────────────────────────
+  const footerY = H - 22;
+  doc.setFillColor(...GOLD);
+  doc.rect(0, footerY, W, 4, "F");
+
+  doc.setFillColor(...NAVY);
+  doc.rect(0, footerY + 4, W, H - footerY - 4, "F");
+
   const completedDate = new Date(data.completedAt).toLocaleDateString("en-IN", {
     year: "numeric", month: "long", day: "numeric",
   });
 
-  // Left: Date
+  // Date
   doc.setFontSize(7);
   doc.setFont("helvetica", "bold");
-  doc.setTextColor(80, 80, 80);
-  doc.setCharSpace(1.2);
-  doc.text("DATE OF COMPLETION", 62, bY - 4, { align: "center" });
+  doc.setTextColor(...GOLD);
+  doc.setCharSpace(1.5);
+  doc.text("DATE OF COMPLETION", 62, footerY + 11, { align: "center" });
   doc.setCharSpace(0);
+  doc.setFontSize(9.5);
   doc.setFont("helvetica", "normal");
-  doc.setFontSize(9);
-  doc.setTextColor(20, 20, 20);
-  doc.text(completedDate, 62, bY + 3, { align: "center" });
-  doc.setDrawColor(201, 162, 39);
-  doc.setLineWidth(0.4);
-  doc.line(30, bY + 6, 94, bY + 6);
+  doc.setTextColor(...WHITE);
+  doc.text(completedDate, 62, footerY + 17, { align: "center" });
 
-  // Center: Logo seal
-  try {
-    const logoBase64 = await loadBase64("/logo.png");
-    doc.setFillColor(0, 118, 143);
-    doc.circle(W / 2, bY, 10, "F");
-    doc.setFillColor(255, 252, 242);
-    doc.circle(W / 2, bY, 8.5, "F");
-    doc.addImage(logoBase64, "PNG", W / 2 - 7, bY - 4, 14, 7);
-    doc.setDrawColor(201, 162, 39);
-    doc.setLineWidth(0.8);
-    doc.circle(W / 2, bY, 10);
-  } catch {
-    doc.setFillColor(0, 118, 143);
-    doc.circle(W / 2, bY, 10, "F");
-    doc.setFontSize(8);
-    doc.setFont("helvetica", "bold");
-    doc.setTextColor(255, 255, 255);
-    doc.text("ZE", W / 2, bY + 1.5, { align: "center" });
-  }
-
-  // Right: Certificate ID
-  doc.setFontSize(7);
-  doc.setFont("helvetica", "bold");
-  doc.setTextColor(80, 80, 80);
-  doc.setCharSpace(1.2);
-  doc.text("CERTIFICATE ID", W - 62, bY - 4, { align: "center" });
-  doc.setCharSpace(0);
-  doc.setFont("courier", "normal");
-  doc.setFontSize(8.5);
-  doc.setTextColor(20, 20, 20);
-  doc.text(data.certId, W - 62, bY + 3, { align: "center" });
-  doc.setDrawColor(201, 162, 39);
-  doc.setLineWidth(0.4);
-  doc.line(W - 94, bY + 6, W - 30, bY + 6);
-
-  // ─── Director signatures ───────────────────────────────────────
-  const sigY = bY + 16;
-
-  // Director 1 — Bhupendra Parmar (left)
-  try {
-    const sig1 = await loadBase64("/sig_bhupendra.png");
-    doc.addImage(sig1, "PNG", 28, sigY, 38, 16, undefined, "FAST");
-  } catch { /* skip */ }
-  doc.setDrawColor(80, 80, 80);
-  doc.setLineWidth(0.4);
-  doc.line(25, sigY + 18, 75, sigY + 18);
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(8.5);
-  doc.setTextColor(20, 20, 20);
-  doc.text("Bhupendra Parmar", 50, sigY + 23, { align: "center" });
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(7.5);
-  doc.setTextColor(100, 100, 100);
-  doc.text("Director, Zalgo Edutech", 50, sigY + 28, { align: "center" });
-
-  // Director 2 — Lokendra Parmar (right)
-  try {
-    const sig2 = await loadBase64("/sig_lokendra.png");
-    doc.addImage(sig2, "PNG", W - 66, sigY, 38, 16, undefined, "FAST");
-  } catch { /* skip */ }
-  doc.setDrawColor(80, 80, 80);
-  doc.setLineWidth(0.4);
-  doc.line(W - 75, sigY + 18, W - 25, sigY + 18);
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(8.5);
-  doc.setTextColor(20, 20, 20);
-  doc.text("Lokendra Parmar", W - 50, sigY + 23, { align: "center" });
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(7.5);
-  doc.setTextColor(100, 100, 100);
-  doc.text("Director, Zalgo Edutech", W - 50, sigY + 28, { align: "center" });
-
-  // ─── Footer note ──────────────────────────────────────────────
+  // Center dim text
   doc.setFontSize(6.5);
-  doc.setFont("helvetica", "normal");
-  doc.setTextColor(200, 200, 200);
+  doc.setTextColor(180, 180, 180);
   doc.text(
-    "Zalgo Edutech  •  This certificate is issued digitally and is valid without a physical signature.",
-    W / 2, H - 14, { align: "center" }
+    "Zalgo Edutech  ·  Issued digitally  ·  Valid without physical signature",
+    W / 2, footerY + 14, { align: "center" }
   );
+
+  // Cert ID
+  doc.setFontSize(7);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(...GOLD);
+  doc.setCharSpace(1.5);
+  doc.text("CERTIFICATE ID", W - 62, footerY + 11, { align: "center" });
+  doc.setCharSpace(0);
+  doc.setFontSize(9.5);
+  doc.setFont("courier", "normal");
+  doc.setTextColor(...WHITE);
+  doc.text(data.certId, W - 62, footerY + 17, { align: "center" });
 
   // Save
   const safeName = data.studentName.replace(/\s+/g, "_");
