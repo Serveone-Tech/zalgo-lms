@@ -240,14 +240,17 @@ function CouponBanner({ coupon }: { coupon: Coupon }) {
   );
 }
 
-const skillCategories = [
-  { label: "Web Development", icon: Monitor, color: "text-blue-500", bg: "bg-blue-50 dark:bg-blue-950/30", count: "120+ courses" },
-  { label: "Data Science", icon: BarChart3, color: "text-purple-500", bg: "bg-purple-50 dark:bg-purple-950/30", count: "80+ courses" },
-  { label: "UI/UX Design", icon: Palette, color: "text-pink-500", bg: "bg-pink-50 dark:bg-pink-950/30", count: "60+ courses" },
-  { label: "DevOps & Cloud", icon: Cloud, color: "text-cyan-500", bg: "bg-cyan-50 dark:bg-cyan-950/30", count: "45+ courses" },
-  { label: "Programming", icon: Code2, color: "text-green-500", bg: "bg-green-50 dark:bg-green-950/30", count: "200+ courses" },
-  { label: "Business", icon: TrendingUp, color: "text-orange-500", bg: "bg-orange-50 dark:bg-orange-950/30", count: "90+ courses" },
-];
+const categoryConfig: Record<string, { icon: any; color: string; bg: string }> = {
+  "Web Development": { icon: Monitor, color: "text-blue-500", bg: "bg-blue-50 dark:bg-blue-950/30" },
+  "Data Science": { icon: BarChart3, color: "text-purple-500", bg: "bg-purple-50 dark:bg-purple-950/30" },
+  "Design": { icon: Palette, color: "text-pink-500", bg: "bg-pink-50 dark:bg-pink-950/30" },
+  "UI/UX Design": { icon: Palette, color: "text-pink-500", bg: "bg-pink-50 dark:bg-pink-950/30" },
+  "DevOps": { icon: Cloud, color: "text-cyan-500", bg: "bg-cyan-50 dark:bg-cyan-950/30" },
+  "DevOps & Cloud": { icon: Cloud, color: "text-cyan-500", bg: "bg-cyan-50 dark:bg-cyan-950/30" },
+  "Programming": { icon: Code2, color: "text-green-500", bg: "bg-green-50 dark:bg-green-950/30" },
+  "Business": { icon: TrendingUp, color: "text-orange-500", bg: "bg-orange-50 dark:bg-orange-950/30" },
+};
+const defaultCategoryConfig = { icon: Zap, color: "text-primary", bg: "bg-primary/10" };
 
 export default function DashboardPage() {
   const { user } = useAuth();
@@ -272,6 +275,12 @@ export default function DashboardPage() {
   const browseCourses = activeCategory === "All"
     ? allBrowseCourses
     : allBrowseCourses.filter(c => c.category === activeCategory);
+
+  const dynamicCategories = [...new Set(allCourses.map(c => c.category))].map(cat => {
+    const count = allCourses.filter(c => c.category === cat).length;
+    const config = categoryConfig[cat] ?? defaultCategoryConfig;
+    return { label: cat, count, ...config };
+  });
   const activeCoupons = couponData?.coupons ?? [];
 
   const completedCount = enrolledCourses.filter(c => (c.progress ?? 0) >= 100).length;
@@ -387,32 +396,34 @@ export default function DashboardPage() {
       </section>
 
       {/* Explore Categories */}
-      <section>
-        <h2 className="text-base font-semibold mb-4 flex items-center gap-2">
-          <Zap className="w-4 h-4 text-primary" />
-          Explore by Category
-        </h2>
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
-          {skillCategories.map(cat => (
-            <button
-              key={cat.label}
-              onClick={() => setActiveCategory(cat.label === activeCategory ? "All" : cat.label)}
-              className={`p-3 rounded-xl border text-left transition-all hover:shadow-sm ${
-                activeCategory === cat.label
-                  ? "border-primary bg-primary/5 ring-1 ring-primary/20"
-                  : "border-border hover:border-primary/30"
-              }`}
-              data-testid={`button-category-${cat.label.toLowerCase().replace(/\s/g, "-")}`}
-            >
-              <div className={`w-8 h-8 rounded-lg ${cat.bg} flex items-center justify-center mb-2`}>
-                <cat.icon className={`w-4 h-4 ${cat.color}`} />
-              </div>
-              <p className="text-xs font-medium text-foreground line-clamp-1">{cat.label}</p>
-              <p className="text-xs text-muted-foreground">{cat.count}</p>
-            </button>
-          ))}
-        </div>
-      </section>
+      {dynamicCategories.length > 0 && (
+        <section>
+          <h2 className="text-base font-semibold mb-4 flex items-center gap-2">
+            <Zap className="w-4 h-4 text-primary" />
+            Explore by Category
+          </h2>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+            {dynamicCategories.map(cat => (
+              <button
+                key={cat.label}
+                onClick={() => setActiveCategory(cat.label === activeCategory ? "All" : cat.label)}
+                className={`p-3 rounded-xl border text-left transition-all hover:shadow-sm ${
+                  activeCategory === cat.label
+                    ? "border-primary bg-primary/5 ring-1 ring-primary/20"
+                    : "border-border hover:border-primary/30"
+                }`}
+                data-testid={`button-category-${cat.label.toLowerCase().replace(/\s+/g, "-")}`}
+              >
+                <div className={`w-8 h-8 rounded-lg ${cat.bg} flex items-center justify-center mb-2`}>
+                  <cat.icon className={`w-4 h-4 ${cat.color}`} />
+                </div>
+                <p className="text-xs font-medium text-foreground line-clamp-1">{cat.label}</p>
+                <p className="text-xs text-muted-foreground">{cat.count} {cat.count === 1 ? "course" : "courses"}</p>
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Browse / Explore Courses */}
       {allBrowseCourses.length > 0 && (
