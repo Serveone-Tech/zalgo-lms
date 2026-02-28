@@ -315,6 +315,30 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     res.json({ enrolled: !!enrollment, enrollment });
   });
 
+  app.get("/api/courses/:courseId/certificate", async (req, res) => {
+    const userId = (req.session as any)[SESSION_USER_KEY];
+    if (!userId) return res.status(401).json({ message: "Not authenticated" });
+    const enrollment = await storage.getEnrollment(userId, req.params.courseId);
+    if (!enrollment) return res.status(403).json({ message: "Not enrolled in this course" });
+    const progress = await storage.getProgress(userId, req.params.courseId);
+    const modules = await storage.getModulesByCourse(req.params.courseId);
+    const allLectures = modules.flatMap((m: any) => m.lectures ?? []);
+    const completedCount = progress.filter((p: any) => p.completed).length;
+    const isCompleted = allLectures.length > 0 && completedCount >= allLectures.length;
+    if (!isCompleted) return res.status(403).json({ message: "Course not yet completed" });
+    const user = await storage.getUser(userId);
+    const course = await storage.getCourse(req.params.courseId);
+    if (!user || !course) return res.status(404).json({ message: "Not found" });
+    const certId = `ZE-${userId.slice(-4).toUpperCase()}-${req.params.courseId.slice(-4).toUpperCase()}-${Date.now().toString(36).toUpperCase()}`;
+    res.json({
+      studentName: user.userName,
+      courseName: course.title,
+      category: course.category,
+      completedAt: enrollment.enrolledAt,
+      certId,
+    });
+  });
+
   app.post("/api/courses/:courseId/lectures/:lectureId/complete", async (req, res) => {
     const userId = (req.session as any)[SESSION_USER_KEY];
     if (!userId) return res.status(401).json({ message: "Not authenticated" });

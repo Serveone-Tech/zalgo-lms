@@ -22,9 +22,13 @@ import {
   Clock,
   Layers,
   BookOpen,
+  Download,
+  Trophy,
+  Loader2,
 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { cn } from "@/lib/utils";
+import { downloadCertificate } from "@/lib/certificate";
 
 declare global {
   interface Window {
@@ -81,9 +85,24 @@ export default function CoursePlayerPage({ courseId }: { courseId: string }) {
   const [expandedModules, setExpandedModules] = useState<Set<string>>(new Set());
   const [realDurations, setRealDurations] = useState<Record<string, number>>({});
   const [currentDuration, setCurrentDuration] = useState<number>(0);
+  const [certLoading, setCertLoading] = useState(false);
   const playerRef = useRef<any>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const ytApiLoaded = useRef(false);
+
+  const handleDownloadCertificate = async () => {
+    setCertLoading(true);
+    try {
+      const res = await fetch(`/api/courses/${courseId}/certificate`, { credentials: "include" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message);
+      await downloadCertificate(data);
+    } catch (err: any) {
+      console.error("Certificate error:", err);
+    } finally {
+      setCertLoading(false);
+    }
+  };
 
   const { data: courseData, isLoading: courseLoading } = useQuery<{ course: Course }>({
     queryKey: [`/api/courses/${courseId}`],
@@ -444,16 +463,43 @@ export default function CoursePlayerPage({ courseId }: { courseId: string }) {
               </div>
 
               {totalProgress >= 100 && (
-                <div className="mt-8 p-6 rounded-xl bg-gradient-to-r from-primary/10 to-primary/5 border border-primary/20">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-full bg-primary/15 flex items-center justify-center">
-                      <GraduationCap className="w-6 h-6 text-primary" />
+                <div className="mt-8 rounded-2xl overflow-hidden border border-primary/20 shadow-sm">
+                  {/* Top gradient banner */}
+                  <div className="bg-gradient-to-r from-primary to-primary/80 px-6 py-5 flex items-center gap-4">
+                    <div className="w-14 h-14 rounded-full bg-white/15 flex items-center justify-center flex-shrink-0">
+                      <Trophy className="w-7 h-7 text-white" />
                     </div>
                     <div className="flex-1">
-                      <h3 className="font-semibold text-foreground">Course Completed!</h3>
-                      <p className="text-sm text-muted-foreground">Congratulations on completing the course.</p>
+                      <h3 className="text-lg font-bold text-white">Course Completed!</h3>
+                      <p className="text-white/75 text-sm">You've mastered every lecture. Congratulations!</p>
                     </div>
-                    <Badge className="bg-green-500 text-white">100%</Badge>
+                    <Badge className="bg-white/20 text-white border-white/30 text-sm px-3 py-1">
+                      100% ✓
+                    </Badge>
+                  </div>
+                  {/* Certificate download area */}
+                  <div className="bg-primary/5 px-6 py-5 flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <GraduationCap className="w-5 h-5 text-primary" />
+                        <span className="font-semibold text-foreground">Your Certificate is Ready</span>
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        Download your personalized PDF certificate of completion for <span className="font-medium text-foreground">{course?.title}</span>.
+                      </p>
+                    </div>
+                    <Button
+                      onClick={handleDownloadCertificate}
+                      disabled={certLoading}
+                      className="gap-2 flex-shrink-0"
+                      data-testid="button-download-certificate"
+                    >
+                      {certLoading ? (
+                        <><Loader2 className="w-4 h-4 animate-spin" />Generating...</>
+                      ) : (
+                        <><Download className="w-4 h-4" />Download Certificate</>
+                      )}
+                    </Button>
                   </div>
                 </div>
               )}

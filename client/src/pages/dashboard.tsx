@@ -9,9 +9,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 import {
   BookOpen, CheckCircle2, Tag, Play, ShoppingCart, Copy, Check,
   Trophy, Star, Users, Clock, Flame, Target, TrendingUp, Zap,
-  Monitor, Database, Palette, Cloud, Code2, ChevronRight, BarChart3
+  Monitor, Database, Palette, Cloud, Code2, ChevronRight, BarChart3,
+  Download, Loader2
 } from "lucide-react";
 import { useState } from "react";
+import { downloadCertificate } from "@/lib/certificate";
 
 interface Course {
   id: string;
@@ -76,8 +78,24 @@ function CourseCardSkeleton() {
 
 function EnrolledCourseCard({ course }: { course: Course }) {
   const [, navigate] = useLocation();
+  const [certLoading, setCertLoading] = useState(false);
   const progress = course.progress ?? 0;
   const isCompleted = progress >= 100;
+
+  const handleCertificate = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setCertLoading(true);
+    try {
+      const res = await fetch(`/api/courses/${course.id}/certificate`, { credentials: "include" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message);
+      await downloadCertificate(data);
+    } catch (err) {
+      console.error("Certificate error:", err);
+    } finally {
+      setCertLoading(false);
+    }
+  };
 
   return (
     <Card className="overflow-hidden group hover:shadow-md transition-shadow" data-testid={`card-enrolled-${course.id}`}>
@@ -107,15 +125,33 @@ function EnrolledCourseCard({ course }: { course: Course }) {
       <CardContent className="p-4">
         <p className="text-xs text-muted-foreground mb-1">{course.instructorName}</p>
         <h3 className="font-semibold text-sm leading-snug mb-3 line-clamp-2">{course.title}</h3>
-        <Button
-          size="sm"
-          className="w-full gap-2"
-          onClick={() => navigate(`/course/${course.id}`)}
-          data-testid={`button-resume-${course.id}`}
-        >
-          <Play className="w-3 h-3" />
-          {isCompleted ? "Review Course" : "Continue Learning"}
-        </Button>
+        <div className="space-y-2">
+          <Button
+            size="sm"
+            className="w-full gap-2"
+            onClick={() => navigate(`/course/${course.id}`)}
+            data-testid={`button-resume-${course.id}`}
+          >
+            <Play className="w-3 h-3" />
+            {isCompleted ? "Review Course" : "Continue Learning"}
+          </Button>
+          {isCompleted && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="w-full gap-2 border-green-500 text-green-600 hover:bg-green-50 dark:hover:bg-green-950/30"
+              onClick={handleCertificate}
+              disabled={certLoading}
+              data-testid={`button-certificate-${course.id}`}
+            >
+              {certLoading ? (
+                <><Loader2 className="w-3 h-3 animate-spin" />Generating...</>
+              ) : (
+                <><Download className="w-3 h-3" />Download Certificate</>
+              )}
+            </Button>
+          )}
+        </div>
       </CardContent>
     </Card>
   );
