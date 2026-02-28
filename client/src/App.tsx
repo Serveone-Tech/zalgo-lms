@@ -21,6 +21,7 @@ import AdminLecturesPage from "@/pages/admin/lectures";
 import AdminUsersPage from "@/pages/admin/users";
 import AdminCouponsPage from "@/pages/admin/coupons";
 import AdminChatPage from "@/pages/admin-chat";
+import StudentChatPage from "@/pages/student-chat";
 import LeaderboardPage from "@/pages/leaderboard";
 import AppLayout from "@/components/layouts/app-layout";
 import NotFound from "@/pages/not-found";
@@ -162,6 +163,9 @@ function Router() {
             <ProtectedRoute component={AdminCouponsPage} adminOnly />
           </AppLayout>
         )}
+      </Route>
+      <Route path="/chat">
+        {() => <ProtectedRoute component={StudentChatPage} />}
       </Route>
       <Route path="/admin/chats">
         {() => <ProtectedRoute component={AdminChatPage} adminOnly />}

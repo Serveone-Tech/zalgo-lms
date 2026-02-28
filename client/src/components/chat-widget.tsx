@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
@@ -26,6 +27,7 @@ function formatTime(ts: string) {
 
 export function ChatWidget() {
   const { user } = useAuth();
+  const [location] = useLocation();
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState("");
@@ -84,7 +86,7 @@ export function ChatWidget() {
     }
   };
 
-  if (!user || user.role === "admin") return null;
+  if (!user || user.role === "admin" || location === "/chat") return null;
 
   return (
     <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-3">

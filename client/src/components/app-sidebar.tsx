@@ -27,6 +27,7 @@ import { useToast } from "@/hooks/use-toast";
 const studentItems = [
   { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
   { title: "Leaderboard", url: "/leaderboard", icon: Trophy },
+  { title: "Chat with Mentor", url: "/chat", icon: MessageCircle },
   { title: "Profile", url: "/profile", icon: UserCircle },
 ];
 
