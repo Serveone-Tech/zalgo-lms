@@ -1,14 +1,18 @@
 import type { Request, Response } from "express";
+import bcrypt from "bcryptjs";
 import { storage } from "../storage";
 import { SESSION_USER_KEY } from "../config/constants";
 import { insertUserSchema } from "@shared/schema";
+
+const SALT_ROUNDS = 12;
 
 export async function signup(req: Request, res: Response) {
   try {
     const body = insertUserSchema.parse(req.body);
     const existing = await storage.getUserByEmail(body.email);
     if (existing) return res.status(400).json({ message: "Email already registered" });
-    const user = await storage.createUser({ ...body, role: "user" });
+    const hashedPassword = await bcrypt.hash(body.password, SALT_ROUNDS);
+    const user = await storage.createUser({ ...body, password: hashedPassword, role: "user" });
     (req.session as any)[SESSION_USER_KEY] = user.id;
     const { password: _, ...safe } = user;
     res.json({ user: safe });
@@ -20,8 +24,11 @@ export async function signup(req: Request, res: Response) {
 export async function signin(req: Request, res: Response) {
   try {
     const { email, password } = req.body;
+    if (!email || !password) return res.status(400).json({ message: "Email and password are required" });
     const user = await storage.getUserByEmail(email);
-    if (!user || user.password !== password) return res.status(401).json({ message: "Invalid credentials" });
+    if (!user) return res.status(401).json({ message: "Invalid credentials" });
+    const isValid = await bcrypt.compare(password, user.password);
+    if (!isValid) return res.status(401).json({ message: "Invalid credentials" });
     (req.session as any)[SESSION_USER_KEY] = user.id;
     const { password: _, ...safe } = user;
     res.json({ user: safe });
@@ -38,17 +45,19 @@ export async function forgotPassword(req: Request, res: Response) {
   const { email } = req.body;
   if (!email) return res.status(400).json({ message: "Email is required" });
   const user = await storage.getUserByEmail(email);
-  if (!user) return res.status(404).json({ message: "No account found with this email" });
+  if (!user) {
+    return res.json({ message: "If that email exists, a reset code has been sent." });
+  }
   const code = Math.floor(100000 + Math.random() * 900000).toString();
   const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
   await storage.storeResetToken(email, code, expiresAt);
-  res.json({ message: "Password reset code generated", demoCode: code });
+  res.json({ message: "If that email exists, a reset code has been sent.", demoCode: code });
 }
 
 export async function resetPassword(req: Request, res: Response) {
   const { email, code, newPassword } = req.body;
   if (!email || !code || !newPassword) return res.status(400).json({ message: "All fields are required" });
-  if (newPassword.length < 6) return res.status(400).json({ message: "Password must be at least 6 characters" });
+  if (newPassword.length < 8) return res.status(400).json({ message: "Password must be at least 8 characters" });
   const tokenData = await storage.getResetToken(email);
   if (!tokenData) return res.status(400).json({ message: "No reset request found. Please request a new code." });
   if (tokenData.expiresAt < new Date()) {
@@ -58,7 +67,8 @@ export async function resetPassword(req: Request, res: Response) {
   if (tokenData.code !== code) return res.status(400).json({ message: "Invalid reset code" });
   const user = await storage.getUserByEmail(email);
   if (!user) return res.status(404).json({ message: "User not found" });
-  await storage.updateUser(user.id, { password: newPassword });
+  const hashedPassword = await bcrypt.hash(newPassword, SALT_ROUNDS);
+  await storage.updateUser(user.id, { password: hashedPassword });
   await storage.deleteResetToken(email);
   res.json({ message: "Password reset successfully. You can now sign in." });
 }
@@ -67,12 +77,15 @@ export async function changePassword(req: Request, res: Response) {
   const userId = (req as any).userId;
   const { oldPassword, newPassword } = req.body;
   if (!oldPassword || !newPassword) return res.status(400).json({ message: "All fields are required" });
-  if (newPassword.length < 6) return res.status(400).json({ message: "New password must be at least 6 characters" });
+  if (newPassword.length < 8) return res.status(400).json({ message: "New password must be at least 8 characters" });
   const user = await storage.getUser(userId);
   if (!user) return res.status(404).json({ message: "User not found" });
-  if (user.password !== oldPassword) return res.status(400).json({ message: "Current password is incorrect" });
-  if (oldPassword === newPassword) return res.status(400).json({ message: "New password must be different from current password" });
-  await storage.updateUser(userId, { password: newPassword });
+  const isOldValid = await bcrypt.compare(oldPassword, user.password);
+  if (!isOldValid) return res.status(400).json({ message: "Current password is incorrect" });
+  const isSame = await bcrypt.compare(newPassword, user.password);
+  if (isSame) return res.status(400).json({ message: "New password must be different from current password" });
+  const hashedPassword = await bcrypt.hash(newPassword, SALT_ROUNDS);
+  await storage.updateUser(userId, { password: hashedPassword });
   res.json({ message: "Password changed successfully" });
 }
 

@@ -1,4 +1,5 @@
 import { randomUUID } from "crypto";
+import bcrypt from "bcryptjs";
 import type {
   User, InsertUser,
   Course, InsertCourse,
@@ -34,10 +35,13 @@ export class MemStorage implements IStorage {
     const user2Id = "user-002";
     const user3Id = "user-003";
 
-    this.users.set(adminId, { id: adminId, userName: "Admin User", email: "admin@lms.com", password: "admin123", role: "admin", photoUrl: "", description: "LMS Platform Administrator", createdAt: new Date("2024-01-01") });
-    this.users.set(user1Id, { id: user1Id, userName: "Rahul Sharma", email: "rahul@example.com", password: "password123", role: "user", photoUrl: "", description: "Passionate about web development", createdAt: new Date("2024-02-15") });
-    this.users.set(user2Id, { id: user2Id, userName: "Priya Patel", email: "priya@example.com", password: "password123", role: "user", photoUrl: "", description: "Full-stack developer in progress", createdAt: new Date("2024-03-10") });
-    this.users.set(user3Id, { id: user3Id, userName: "Amit Kumar", email: "amit@example.com", password: "password123", role: "user", photoUrl: "", description: "Learning React and Node.js", createdAt: new Date("2024-04-01") });
+    const adminHash = bcrypt.hashSync("admin123", 12);
+    const userHash = bcrypt.hashSync("password123", 12);
+
+    this.users.set(adminId, { id: adminId, userName: "Admin User", email: "admin@lms.com", password: adminHash, role: "admin", photoUrl: "", description: "LMS Platform Administrator", createdAt: new Date("2024-01-01") });
+    this.users.set(user1Id, { id: user1Id, userName: "Rahul Sharma", email: "rahul@example.com", password: userHash, role: "user", photoUrl: "", description: "Passionate about web development", createdAt: new Date("2024-02-15") });
+    this.users.set(user2Id, { id: user2Id, userName: "Priya Patel", email: "priya@example.com", password: userHash, role: "user", photoUrl: "", description: "Full-stack developer in progress", createdAt: new Date("2024-03-10") });
+    this.users.set(user3Id, { id: user3Id, userName: "Amit Kumar", email: "amit@example.com", password: userHash, role: "user", photoUrl: "", description: "Learning React and Node.js", createdAt: new Date("2024-04-01") });
 
     const c1 = "course-001", c2 = "course-002", c3 = "course-003", c4 = "course-004";
     this.courses.set(c1, { id: c1, title: "Complete React & Node.js Bootcamp", shortDescription: "Master full-stack development with React and Node.js from scratch", category: "Web Development", price: 1999, thumbnail: "https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=800&h=450&fit=crop", isPublished: true, creatorId: adminId, createdAt: new Date("2024-01-15") });
