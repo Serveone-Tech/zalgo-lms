@@ -40,6 +40,38 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     req.session.destroy(() => res.json({ success: true }));
   });
 
+  app.post("/api/auth/forgot-password", async (req, res) => {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ message: "Email is required" });
+    const user = await storage.getUserByEmail(email);
+    if (!user) return res.status(404).json({ message: "No account found with this email" });
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
+    await storage.storeResetToken(email, code, expiresAt);
+    res.json({
+      message: "Password reset code generated",
+      demoCode: code,
+    });
+  });
+
+  app.post("/api/auth/reset-password", async (req, res) => {
+    const { email, code, newPassword } = req.body;
+    if (!email || !code || !newPassword) return res.status(400).json({ message: "All fields are required" });
+    if (newPassword.length < 6) return res.status(400).json({ message: "Password must be at least 6 characters" });
+    const tokenData = await storage.getResetToken(email);
+    if (!tokenData) return res.status(400).json({ message: "No reset request found. Please request a new code." });
+    if (tokenData.expiresAt < new Date()) {
+      await storage.deleteResetToken(email);
+      return res.status(400).json({ message: "Reset code has expired. Please request a new one." });
+    }
+    if (tokenData.code !== code) return res.status(400).json({ message: "Invalid reset code" });
+    const user = await storage.getUserByEmail(email);
+    if (!user) return res.status(404).json({ message: "User not found" });
+    await storage.updateUser(user.id, { password: newPassword });
+    await storage.deleteResetToken(email);
+    res.json({ message: "Password reset successfully. You can now sign in." });
+  });
+
   app.get("/api/auth/me", async (req, res) => {
     const userId = (req.session as any)[SESSION_USER_KEY];
     if (!userId) return res.status(401).json({ message: "Not authenticated" });
@@ -91,9 +123,32 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   });
 
   // --- COURSES ---
+  const courseMetadata: Record<string, { level: string; rating: number }> = {
+    "course-001": { level: "Beginner to Advanced", rating: 4.8 },
+    "course-002": { level: "Intermediate", rating: 4.7 },
+    "course-003": { level: "All Levels", rating: 4.9 },
+    "course-004": { level: "Advanced", rating: 4.6 },
+  };
+
+  async function enrichCourse(course: any) {
+    const instructor = await storage.getUser(course.creatorId);
+    const lectureCount = await storage.getCourseLectureCount(course.id);
+    const studentCount = await storage.getCourseEnrollmentCount(course.id);
+    const meta = courseMetadata[course.id] ?? { level: "All Levels", rating: 4.5 };
+    return {
+      ...course,
+      instructorName: instructor?.userName ?? "Zalgo Edutech",
+      lectureCount,
+      studentCount,
+      level: meta.level,
+      rating: meta.rating,
+    };
+  }
+
   app.get("/api/courses", async (req, res) => {
     const courses = await storage.getPublishedCourses();
-    res.json({ courses });
+    const enriched = await Promise.all(courses.map(enrichCourse));
+    res.json({ courses: enriched });
   });
 
   app.get("/api/courses/admin", async (req, res) => {
@@ -110,7 +165,9 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     const enrollments = await storage.getUserEnrollments(userId);
     const courses = await Promise.all(enrollments.map(async e => {
       const course = await storage.getCourse(e.courseId);
-      return course ? { ...course, progress: e.progress } : null;
+      if (!course) return null;
+      const enriched = await enrichCourse(course);
+      return { ...enriched, progress: e.progress, enrolledAt: e.enrolledAt };
     }));
     res.json({ courses: courses.filter(Boolean) });
   });

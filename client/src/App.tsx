@@ -9,6 +9,8 @@ import { useEffect } from "react";
 
 import SignInPage from "@/pages/sign-in";
 import SignUpPage from "@/pages/sign-up";
+import ForgotPasswordPage from "@/pages/forgot-password";
+import ResetPasswordPage from "@/pages/reset-password";
 import DashboardPage from "@/pages/dashboard";
 import CoursePlayerPage from "@/pages/course-player";
 import PaymentPage from "@/pages/payment";
@@ -85,6 +87,8 @@ function Router() {
       <Route path="/sign-up">
         {() => <PublicRoute component={SignUpPage} />}
       </Route>
+      <Route path="/forgot-password" component={ForgotPasswordPage} />
+      <Route path="/reset-password" component={ResetPasswordPage} />
       <Route path="/dashboard">
         {() => (
           <AppLayout>

@@ -66,6 +66,15 @@ export interface IStorage {
   // Course Progress
   markLectureComplete(userId: string, courseId: string, lectureId: string): Promise<void>;
   getCompletedLectures(userId: string, courseId: string): Promise<string[]>;
+
+  // Password Reset
+  storeResetToken(email: string, code: string, expiresAt: Date): Promise<void>;
+  getResetToken(email: string): Promise<{ code: string; expiresAt: Date } | undefined>;
+  deleteResetToken(email: string): Promise<void>;
+
+  // Course extra stats
+  getCourseEnrollmentCount(courseId: string): Promise<number>;
+  getCourseLectureCount(courseId: string): Promise<number>;
 }
 
 export class MemStorage implements IStorage {
@@ -77,6 +86,7 @@ export class MemStorage implements IStorage {
   private coupons = new Map<string, Coupon>();
   private orders = new Map<string, Order>();
   private progressRecords = new Map<string, CourseProgress>();
+  private resetTokens = new Map<string, { code: string; expiresAt: Date }>();
 
   constructor() {
     this.seed();
@@ -185,7 +195,7 @@ export class MemStorage implements IStorage {
       category: "DevOps",
       price: 2999,
       thumbnail: "https://images.unsplash.com/photo-1667372393119-3d4c48d07fc9?w=800&h=450&fit=crop",
-      isPublished: false,
+      isPublished: true,
       creatorId: adminId,
       createdAt: new Date("2024-04-01"),
     };
@@ -402,6 +412,24 @@ export class MemStorage implements IStorage {
     return Array.from(this.progressRecords.values())
       .filter(p => p.userId === userId && p.courseId === courseId)
       .map(p => p.lectureId);
+  }
+
+  async storeResetToken(email: string, code: string, expiresAt: Date) {
+    this.resetTokens.set(email.toLowerCase(), { code, expiresAt });
+  }
+  async getResetToken(email: string) { return this.resetTokens.get(email.toLowerCase()); }
+  async deleteResetToken(email: string) { this.resetTokens.delete(email.toLowerCase()); }
+
+  async getCourseEnrollmentCount(courseId: string): Promise<number> {
+    return Array.from(this.enrollments.values()).filter(e => e.courseId === courseId).length;
+  }
+  async getCourseLectureCount(courseId: string): Promise<number> {
+    const mods = Array.from(this.modules.values()).filter(m => m.courseId === courseId);
+    let count = 0;
+    for (const m of mods) {
+      count += Array.from(this.lectures.values()).filter(l => l.moduleId === m.id).length;
+    }
+    return count;
   }
 }
 
