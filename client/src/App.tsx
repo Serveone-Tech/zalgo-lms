@@ -22,6 +22,7 @@ import AdminUsersPage from "@/pages/admin/users";
 import AdminCouponsPage from "@/pages/admin/coupons";
 import AdminChatPage from "@/pages/admin-chat";
 import StudentChatPage from "@/pages/student-chat";
+import CertificatePreviewPage from "@/pages/certificate-preview";
 import LeaderboardPage from "@/pages/leaderboard";
 import AppLayout from "@/components/layouts/app-layout";
 import NotFound from "@/pages/not-found";
@@ -164,6 +165,7 @@ function Router() {
           </AppLayout>
         )}
       </Route>
+      <Route path="/certificate-preview" component={CertificatePreviewPage} />
       <Route path="/chat">
         {() => <ProtectedRoute component={StudentChatPage} />}
       </Route>
