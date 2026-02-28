@@ -237,18 +237,18 @@ export default function AdminLecturesPage({ courseId }: { courseId: string }) {
                 <Collapsible open={isExpanded} onOpenChange={() => {
                   setExpandedModules(prev => { const next = new Set(prev); next.has(module.id) ? next.delete(module.id) : next.add(module.id); return next; });
                 }}>
-                  <CollapsibleTrigger className="w-full">
-                    <div className="flex items-center gap-3 p-4 text-left">
+                  <div className="flex items-center gap-2 px-4 py-3">
+                    <CollapsibleTrigger className="flex items-center gap-3 flex-1 min-w-0 text-left">
                       {isExpanded ? <ChevronDown className="w-4 h-4 text-muted-foreground flex-shrink-0" /> : <ChevronRight className="w-4 h-4 text-muted-foreground flex-shrink-0" />}
                       <div className="flex-1 min-w-0">
                         <p className="font-semibold text-sm">{module.title}</p>
                         <p className="text-xs text-muted-foreground">{module.lectures.length} lecture{module.lectures.length !== 1 ? "s" : ""}</p>
                       </div>
-                      <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={e => { e.stopPropagation(); setDeleteTarget({ type: "module", id: module.id, name: module.title }); }} data-testid={`button-delete-module-${module.id}`}>
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </Button>
-                    </div>
-                  </CollapsibleTrigger>
+                    </CollapsibleTrigger>
+                    <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive flex-shrink-0" onClick={() => setDeleteTarget({ type: "module", id: module.id, name: module.title })} data-testid={`button-delete-module-${module.id}`}>
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </Button>
+                  </div>
                   <CollapsibleContent>
                     <div className="px-4 pb-4">
                       <Separator className="mb-3" />

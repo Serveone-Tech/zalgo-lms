@@ -1,7 +1,10 @@
 import type { Request, Response } from "express";
+import { z } from "zod";
 import { storage } from "../storage";
 import { insertCourseSchema } from "@shared/schema";
 import { enrichCourse } from "../utils/course.utils";
+
+const updateCourseSchema = insertCourseSchema.partial().omit({ creatorId: true });
 
 export async function getPublishedCourses(_req: Request, res: Response) {
   const courses = await storage.getPublishedCourses();
@@ -37,20 +40,29 @@ export async function createCourse(req: Request, res: Response) {
   const userId = (req as any).userId;
   try {
     const body = insertCourseSchema.parse({ ...req.body, creatorId: userId });
-    const course = await storage.createCourse(body);
-    res.json({ course });
+    if (!body.title?.trim()) return res.status(400).json({ message: "Course title is required" });
+    if (!body.category?.trim()) return res.status(400).json({ message: "Course category is required" });
+    const course = await storage.createCourse({ ...body, creatorId: userId });
+    res.status(201).json({ course });
   } catch (err: any) {
-    res.status(400).json({ message: err.message });
+    res.status(400).json({ message: err.errors?.[0]?.message ?? err.message });
   }
 }
 
 export async function updateCourse(req: Request, res: Response) {
-  const updated = await storage.updateCourse(req.params.id, req.body);
-  if (!updated) return res.status(404).json({ message: "Course not found" });
-  res.json({ course: updated });
+  try {
+    const body = updateCourseSchema.parse(req.body);
+    const updated = await storage.updateCourse(req.params.id, body);
+    if (!updated) return res.status(404).json({ message: "Course not found" });
+    res.json({ course: updated });
+  } catch (err: any) {
+    res.status(400).json({ message: err.errors?.[0]?.message ?? err.message });
+  }
 }
 
 export async function deleteCourse(req: Request, res: Response) {
+  const course = await storage.getCourse(req.params.id);
+  if (!course) return res.status(404).json({ message: "Course not found" });
   await storage.deleteCourse(req.params.id);
   res.json({ success: true });
 }

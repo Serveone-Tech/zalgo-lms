@@ -12,8 +12,8 @@ export default function SignInPage() {
   const { signIn } = useAuth();
   const [, navigate] = useLocation();
   const { theme, toggleTheme } = useTheme();
-  const [email, setEmail] = useState("admin@lms.com");
-  const [password, setPassword] = useState("admin123");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);

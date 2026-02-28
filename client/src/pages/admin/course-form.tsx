@@ -63,7 +63,6 @@ export default function AdminCourseFormPage({ courseId }: { courseId?: string })
         category,
         price: parseFloat(price) || 0,
         thumbnail: thumbnail.trim() || undefined,
-        creatorId: "admin-001",
       };
 
       if (isEditing) {
