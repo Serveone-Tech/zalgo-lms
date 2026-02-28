@@ -82,11 +82,11 @@ export function CertificateCard({
         border: "1px solid #d1d5db",
       }}
     >
-      {/* ── Navy Header ─────────────────────────────────────────── */}
+      {/* ── Header ──────────────────────────────────────────────── */}
       <div
         style={{
-          background: "linear-gradient(135deg, #0B1F3A 0%, #122944 50%, #0B1F3A 100%)",
-          padding: "28px 48px 22px",
+          background: "linear-gradient(135deg, hsl(197,100%,30%) 0%, hsl(197,100%,36%) 50%, hsl(197,100%,30%) 100%)",
+          padding: "24px 48px 20px",
           textAlign: "center",
           position: "relative",
           overflow: "hidden",
@@ -95,27 +95,15 @@ export function CertificateCard({
         <div
           style={{
             position: "absolute", top: 0, left: 0, right: 0, bottom: 0,
-            background: "repeating-linear-gradient(45deg, rgba(212,175,55,0.03) 0px, rgba(212,175,55,0.03) 1px, transparent 1px, transparent 12px)",
+            background: "repeating-linear-gradient(45deg, rgba(212,175,55,0.04) 0px, rgba(212,175,55,0.04) 1px, transparent 1px, transparent 12px)",
           }}
         />
         <div style={{ position: "relative" }}>
           <img
             src="/logo.png"
             alt="Zalgo Edutech"
-            style={{ height: 54, objectFit: "contain", filter: "brightness(0) invert(1)" }}
+            style={{ height: 60, objectFit: "contain", filter: "brightness(0) invert(1)" }}
           />
-          <p
-            style={{
-              color: "#D4AF37",
-              letterSpacing: "0.5em",
-              fontSize: 10,
-              fontFamily: "Arial, sans-serif",
-              marginTop: 10,
-              fontWeight: 700,
-            }}
-          >
-            ZALGO EDUTECH
-          </p>
         </div>
       </div>
 
@@ -146,7 +134,7 @@ export function CertificateCard({
           style={{
             width: 90,
             height: 2,
-            background: "#0B1F3A",
+            background: "hsl(197,100%,30%)",
             margin: "0 auto 20px",
             borderRadius: 2,
           }}
@@ -165,7 +153,7 @@ export function CertificateCard({
 
         <h1
           style={{
-            color: "#0B1F3A",
+            color: "hsl(197,100%,30%)",
             fontSize: 48,
             fontWeight: 700,
             margin: "0 0 10px",
@@ -197,7 +185,7 @@ export function CertificateCard({
 
         <h2
           style={{
-            color: "#0B1F3A",
+            color: "hsl(197,100%,22%)",
             fontSize: 22,
             fontWeight: 700,
             margin: "0 auto 20px",
@@ -212,8 +200,8 @@ export function CertificateCard({
         <div style={{ display: "flex", justifyContent: "center" }}>
           <span
             style={{
-              border: "1.5px solid #0B1F3A",
-              color: "#0B1F3A",
+              border: "1.5px solid hsl(197,100%,30%)",
+              color: "hsl(197,100%,30%)",
               padding: "4px 20px",
               fontSize: 9,
               letterSpacing: "0.28em",
@@ -229,7 +217,7 @@ export function CertificateCard({
       {/* ── Divider ──────────────────────────────────────────────── */}
       <div style={{ margin: "0 52px" }}>
         <div style={{ height: 1.5, background: "#D4AF37" }} />
-        <div style={{ height: 1, background: "#0B1F3A", opacity: 0.1, marginTop: 3 }} />
+        <div style={{ height: 1, background: "hsl(197,100%,30%)", opacity: 0.12, marginTop: 3 }} />
       </div>
 
       {/* ── Signature Section ────────────────────────────────────── */}
@@ -244,22 +232,34 @@ export function CertificateCard({
       >
         {/* Left director */}
         <div style={{ flex: 1, textAlign: "center" }}>
-          <img
-            src="/sig_bhupendra.png"
-            alt="Bhupendra Parmar"
+          {/* Fixed-height container so both sigs bottom-align at the same level */}
+          <div
             style={{
-              height: 52,
-              objectFit: "contain",
-              filter: "contrast(1.2) brightness(0.85)",
-              maxWidth: "100%",
+              height: 64,
+              display: "flex",
+              alignItems: "flex-end",
+              justifyContent: "center",
+              marginBottom: 0,
             }}
-          />
+          >
+            <img
+              src="/sig_bhupendra.png"
+              alt="Bhupendra Parmar"
+              style={{
+                maxHeight: 60,
+                maxWidth: "90%",
+                objectFit: "contain",
+                objectPosition: "bottom",
+                filter: "contrast(1.2) brightness(0.85)",
+              }}
+            />
+          </div>
           <div style={{ height: 1.5, background: "#374151", margin: "6px 0 5px" }} />
           <p
             style={{
               fontWeight: 700,
               fontSize: 13,
-              color: "#0B1F3A",
+              color: "hsl(197,100%,22%)",
               margin: 0,
               fontFamily: "Arial, sans-serif",
             }}
@@ -293,12 +293,12 @@ export function CertificateCard({
               width: 88,
               height: 88,
               borderRadius: "50%",
-              background: "linear-gradient(135deg, #0B1F3A, #1a3a5c)",
+              background: "linear-gradient(135deg, hsl(197,100%,28%), hsl(197,100%,36%))",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
               border: "3px solid #D4AF37",
-              boxShadow: "0 0 0 6px rgba(212,175,55,0.12), 0 6px 24px rgba(11,31,58,0.35)",
+              boxShadow: "0 0 0 6px rgba(212,175,55,0.12), 0 6px 24px rgba(0,118,143,0.3)",
             }}
           >
             <div
@@ -335,22 +335,32 @@ export function CertificateCard({
 
         {/* Right director */}
         <div style={{ flex: 1, textAlign: "center" }}>
-          <img
-            src="/sig_lokendra.png"
-            alt="Lokendra Parmar"
+          <div
             style={{
-              height: 52,
-              objectFit: "contain",
-              filter: "contrast(1.2) brightness(0.85)",
-              maxWidth: "100%",
+              height: 64,
+              display: "flex",
+              alignItems: "flex-end",
+              justifyContent: "center",
             }}
-          />
+          >
+            <img
+              src="/sig_lokendra.png"
+              alt="Lokendra Parmar"
+              style={{
+                maxHeight: 60,
+                maxWidth: "90%",
+                objectFit: "contain",
+                objectPosition: "bottom",
+                filter: "contrast(1.2) brightness(0.85)",
+              }}
+            />
+          </div>
           <div style={{ height: 1.5, background: "#374151", margin: "6px 0 5px" }} />
           <p
             style={{
               fontWeight: 700,
               fontSize: 13,
-              color: "#0B1F3A",
+              color: "hsl(197,100%,22%)",
               margin: 0,
               fontFamily: "Arial, sans-serif",
             }}
@@ -378,10 +388,10 @@ export function CertificateCard({
         }}
       />
 
-      {/* ── Navy Footer ──────────────────────────────────────────── */}
+      {/* ── Footer ───────────────────────────────────────────────── */}
       <div
         style={{
-          background: "linear-gradient(135deg, #0B1F3A 0%, #122944 100%)",
+          background: "linear-gradient(135deg, hsl(197,100%,26%) 0%, hsl(197,100%,32%) 50%, hsl(197,100%,26%) 100%)",
           padding: "13px 48px",
           display: "flex",
           justifyContent: "space-between",

@@ -24,13 +24,13 @@ export async function downloadCertificate(data: CertificateData) {
   const W = 297;
   const H = 210;
 
-  const NAVY: [number, number, number] = [11, 31, 58];
+  const TEAL: [number, number, number] = [0, 105, 128];
   const GOLD: [number, number, number] = [212, 175, 55];
   const WHITE: [number, number, number] = [255, 255, 255];
   const GRAY: [number, number, number] = [120, 120, 120];
 
-  // ── NAVY HEADER (y = 0 → 34) ─────────────────────────────────
-  doc.setFillColor(...NAVY);
+  // ── TEAL HEADER (y = 0 → 34) ─────────────────────────────────
+  doc.setFillColor(...TEAL);
   doc.rect(0, 0, W, 34, "F");
 
   // Diagonal pattern lines (subtle gold tint)
@@ -40,27 +40,20 @@ export async function downloadCertificate(data: CertificateData) {
     doc.line(x, 0, x + 34, 34);
   }
 
-  // Logo in header (try to load; fallback to text)
+  // Logo in header with white backing so it's visible on teal bg
   try {
     const logoBase64 = await loadBase64("/logo.png");
-    // White rounded backing so logo is visible on dark bg
     doc.setFillColor(...WHITE);
-    doc.roundedRect(W / 2 - 20, 5, 40, 20, 2, 2, "F");
-    doc.addImage(logoBase64, "PNG", W / 2 - 16, 7, 32, 16);
+    doc.roundedRect(W / 2 - 20, 5, 40, 22, 2, 2, "F");
+    doc.addImage(logoBase64, "PNG", W / 2 - 16, 7, 32, 18);
   } catch {
     doc.setFontSize(13);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(...GOLD);
+    doc.setCharSpace(3.2);
     doc.text("ZALGO EDUTECH", W / 2, 20, { align: "center" });
+    doc.setCharSpace(0);
   }
-
-  // Brand name below logo
-  doc.setFontSize(8.5);
-  doc.setFont("helvetica", "bold");
-  doc.setTextColor(...GOLD);
-  doc.setCharSpace(3.2);
-  doc.text("ZALGO EDUTECH", W / 2, 30, { align: "center" });
-  doc.setCharSpace(0);
 
   // ── GOLD RULE (y = 34 → 38) ──────────────────────────────────
   doc.setFillColor(...GOLD);
@@ -75,7 +68,7 @@ export async function downloadCertificate(data: CertificateData) {
   doc.setCharSpace(0);
 
   // Navy accent line under label
-  doc.setFillColor(...NAVY);
+  doc.setFillColor(...TEAL);
   doc.rect(W / 2 - 42, 54, 84, 1.5, "F");
 
   // ── "This is to certify that" ─────────────────────────────────
@@ -87,7 +80,7 @@ export async function downloadCertificate(data: CertificateData) {
   // ── Student Name ──────────────────────────────────────────────
   doc.setFontSize(28);
   doc.setFont("times", "bold");
-  doc.setTextColor(...NAVY);
+  doc.setTextColor(...TEAL);
   doc.text(data.studentName, W / 2, 78, { align: "center" });
 
   // Gold underline
@@ -103,7 +96,7 @@ export async function downloadCertificate(data: CertificateData) {
   // ── Course Name ───────────────────────────────────────────────
   doc.setFontSize(15);
   doc.setFont("helvetica", "bold");
-  doc.setTextColor(...NAVY);
+  doc.setTextColor(...TEAL);
   const courseLines = doc.splitTextToSize(data.courseName, 200);
   doc.text(courseLines, W / 2, 103, { align: "center" });
 
@@ -112,8 +105,8 @@ export async function downloadCertificate(data: CertificateData) {
   const catText = data.category.toUpperCase();
   doc.setFontSize(7.5);
   doc.setFont("helvetica", "bold");
-  doc.setTextColor(...NAVY);
-  doc.setDrawColor(...NAVY);
+  doc.setTextColor(...TEAL);
+  doc.setDrawColor(...TEAL);
   doc.setLineWidth(0.9);
   const catW = doc.getTextWidth(catText) + 14;
   doc.rect(W / 2 - catW / 2, catY - 4.5, catW, 7.5, "D");
@@ -137,7 +130,7 @@ export async function downloadCertificate(data: CertificateData) {
   doc.line(20, sigTop + 23, 85, sigTop + 23);
   doc.setFont("helvetica", "bold");
   doc.setFontSize(8.5);
-  doc.setTextColor(...NAVY);
+  doc.setTextColor(...TEAL);
   doc.text("Bhupendra Parmar", 52, sigTop + 28, { align: "center" });
   doc.setFont("helvetica", "normal");
   doc.setFontSize(7.5);
@@ -154,7 +147,7 @@ export async function downloadCertificate(data: CertificateData) {
   doc.line(W - 85, sigTop + 23, W - 20, sigTop + 23);
   doc.setFont("helvetica", "bold");
   doc.setFontSize(8.5);
-  doc.setTextColor(...NAVY);
+  doc.setTextColor(...TEAL);
   doc.text("Lokendra Parmar", W - 52, sigTop + 28, { align: "center" });
   doc.setFont("helvetica", "normal");
   doc.setFontSize(7.5);
@@ -166,7 +159,7 @@ export async function downloadCertificate(data: CertificateData) {
   const sealCY = sigTop + 14;
   const sealR = 14;
 
-  doc.setFillColor(...NAVY);
+  doc.setFillColor(...TEAL);
   doc.circle(sealCX, sealCY, sealR, "F");
   doc.setDrawColor(...GOLD);
   doc.setLineWidth(1.2);
@@ -180,7 +173,7 @@ export async function downloadCertificate(data: CertificateData) {
   } catch {
     doc.setFontSize(8);
     doc.setFont("helvetica", "bold");
-    doc.setTextColor(...NAVY);
+    doc.setTextColor(...TEAL);
     doc.text("ZE", sealCX, sealCY + 1, { align: "center" });
   }
 
@@ -197,7 +190,7 @@ export async function downloadCertificate(data: CertificateData) {
   doc.setFillColor(...GOLD);
   doc.rect(0, footerY, W, 4, "F");
 
-  doc.setFillColor(...NAVY);
+  doc.setFillColor(...TEAL);
   doc.rect(0, footerY + 4, W, H - footerY - 4, "F");
 
   const completedDate = new Date(data.completedAt).toLocaleDateString("en-IN", {
