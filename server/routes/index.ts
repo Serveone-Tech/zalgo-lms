@@ -11,6 +11,7 @@ import leaderboardRoutes from "./leaderboard.routes";
 import chatRoutes from "./chat.routes";
 import adminRoutes from "./admin.routes";
 import uploadRoutes from "./upload.routes";
+import paymentRoutes from "./payment.routes";
 
 export function applyRoutes(httpServer: Server, app: Express): Server {
   app.use("/api/auth", authRoutes);
@@ -24,5 +25,6 @@ export function applyRoutes(httpServer: Server, app: Express): Server {
   app.use("/api/leaderboard", leaderboardRoutes);
   app.use("/api/chat", chatRoutes);
   app.use("/api/upload", uploadRoutes);
+  app.use("/api/payment", paymentRoutes);
   return httpServer;
 }

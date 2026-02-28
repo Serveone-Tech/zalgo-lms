@@ -7,8 +7,9 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
-import { BookOpen, Tag, CheckCircle2, Loader2, ArrowLeft, ShieldCheck } from "lucide-react";
-import { apiRequest } from "@/lib/queryClient";
+import { BookOpen, Tag, CheckCircle2, Loader2, ArrowLeft, ShieldCheck, CreditCard, Lock } from "lucide-react";
+import { SiRazorpay } from "react-icons/si";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
 interface Course {
@@ -20,6 +21,17 @@ interface Course {
   shortDescription?: string;
 }
 
+function loadRazorpayScript(): Promise<boolean> {
+  return new Promise((resolve) => {
+    if ((window as any).Razorpay) { resolve(true); return; }
+    const script = document.createElement("script");
+    script.src = "https://checkout.razorpay.com/v1/checkout.js";
+    script.onload = () => resolve(true);
+    script.onerror = () => resolve(false);
+    document.body.appendChild(script);
+  });
+}
+
 export default function PaymentPage({ courseId }: { courseId: string }) {
   const [, navigate] = useLocation();
   const { toast } = useToast();
@@ -27,6 +39,7 @@ export default function PaymentPage({ courseId }: { courseId: string }) {
   const [appliedCoupon, setAppliedCoupon] = useState<{ couponId: string; discount: number; finalAmount: number; discountPercent: number } | null>(null);
   const [couponError, setCouponError] = useState("");
   const [couponLoading, setCouponLoading] = useState(false);
+  const [payLoading, setPayLoading] = useState(false);
 
   const { data, isLoading } = useQuery<{ course: Course }>({
     queryKey: [`/api/courses/${courseId}`],
@@ -40,9 +53,7 @@ export default function PaymentPage({ courseId }: { courseId: string }) {
   const finalAmount = appliedCoupon ? appliedCoupon.finalAmount : course?.price ?? 0;
 
   useEffect(() => {
-    if (enrollData?.enrolled) {
-      navigate(`/course/${courseId}`);
-    }
+    if (enrollData?.enrolled) navigate(`/course/${courseId}`);
   }, [enrollData]);
 
   const applyCoupon = async () => {
@@ -50,10 +61,7 @@ export default function PaymentPage({ courseId }: { courseId: string }) {
     setCouponError("");
     setCouponLoading(true);
     try {
-      const res = await apiRequest("POST", "/api/coupons/apply", {
-        code: couponCode.trim(),
-        coursePrice: course.price,
-      });
+      const res = await apiRequest("POST", "/api/coupons/apply", { code: couponCode.trim(), coursePrice: course.price });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message);
       setAppliedCoupon(data);
@@ -64,27 +72,81 @@ export default function PaymentPage({ courseId }: { courseId: string }) {
     }
   };
 
-  const enrollMutation = useMutation({
+  const freeEnrollMutation = useMutation({
     mutationFn: async () => {
-      const res = await apiRequest("POST", "/api/enroll", {
-        courseId,
-        amount: finalAmount,
-        couponId: appliedCoupon?.couponId,
-      });
-      if (!res.ok) {
-        const d = await res.json();
-        throw new Error(d.message);
-      }
+      const res = await apiRequest("POST", "/api/enroll", { courseId, amount: 0, couponId: appliedCoupon?.couponId });
+      if (!res.ok) throw new Error((await res.json()).message);
       return res.json();
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/courses/${courseId}/enrollment`] });
       toast({ title: "Enrollment successful!", description: "You can now access the course." });
       navigate(`/course/${courseId}`);
     },
-    onError: (err: any) => {
-      toast({ title: "Enrollment failed", description: err.message, variant: "destructive" });
-    },
+    onError: (err: any) => toast({ title: "Enrollment failed", description: err.message, variant: "destructive" }),
   });
+
+  const handleRazorpayPayment = async () => {
+    if (!course) return;
+    setPayLoading(true);
+
+    try {
+      const scriptLoaded = await loadRazorpayScript();
+      if (!scriptLoaded) {
+        toast({ title: "Error", description: "Failed to load payment gateway. Check your internet connection.", variant: "destructive" });
+        setPayLoading(false);
+        return;
+      }
+
+      const res = await apiRequest("POST", "/api/payment/order", {
+        courseId,
+        couponId: appliedCoupon?.couponId,
+      });
+      const orderData = await res.json();
+      if (!res.ok) throw new Error(orderData.message);
+
+      const options = {
+        key: orderData.keyId,
+        amount: orderData.amount,
+        currency: orderData.currency,
+        name: "Zalgo Edutech",
+        description: orderData.courseName,
+        order_id: orderData.orderId,
+        handler: async (response: any) => {
+          try {
+            const verifyRes = await apiRequest("POST", "/api/payment/verify", {
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature: response.razorpay_signature,
+              courseId,
+              finalAmount: orderData.finalAmount,
+              couponId: appliedCoupon?.couponId,
+            });
+            const verifyData = await verifyRes.json();
+            if (!verifyRes.ok) throw new Error(verifyData.message);
+            queryClient.invalidateQueries({ queryKey: [`/api/courses/${courseId}/enrollment`] });
+            toast({ title: "Payment successful!", description: "You are now enrolled in the course." });
+            navigate(`/course/${courseId}`);
+          } catch (err: any) {
+            toast({ title: "Verification failed", description: err.message, variant: "destructive" });
+          }
+        },
+        prefill: {},
+        theme: { color: "#006980" },
+        modal: { ondismiss: () => setPayLoading(false) },
+      };
+
+      const rzp = new (window as any).Razorpay(options);
+      rzp.on("payment.failed", (response: any) => {
+        toast({ title: "Payment failed", description: response.error?.description ?? "Please try again.", variant: "destructive" });
+        setPayLoading(false);
+      });
+      rzp.open();
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+      setPayLoading(false);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -102,6 +164,8 @@ export default function PaymentPage({ courseId }: { courseId: string }) {
   }
 
   if (!course) return null;
+
+  const isFree = finalAmount <= 0;
 
   return (
     <div className="max-w-4xl mx-auto">
@@ -162,8 +226,7 @@ export default function PaymentPage({ courseId }: { courseId: string }) {
                     </span>
                   </div>
                   <Button
-                    size="sm"
-                    variant="ghost"
+                    size="sm" variant="ghost"
                     onClick={() => { setAppliedCoupon(null); setCouponCode(""); }}
                     className="text-xs h-7"
                     data-testid="button-remove-coupon"
@@ -181,8 +244,7 @@ export default function PaymentPage({ courseId }: { courseId: string }) {
                     data-testid="input-coupon"
                   />
                   <Button
-                    variant="outline"
-                    onClick={applyCoupon}
+                    variant="outline" onClick={applyCoupon}
                     disabled={couponLoading || !couponCode.trim()}
                     data-testid="button-apply-coupon"
                   >
@@ -190,11 +252,16 @@ export default function PaymentPage({ courseId }: { courseId: string }) {
                   </Button>
                 </div>
               )}
-              {couponError && (
-                <p className="text-xs text-destructive mt-2" data-testid="text-coupon-error">{couponError}</p>
-              )}
+              {couponError && <p className="text-xs text-destructive mt-2" data-testid="text-coupon-error">{couponError}</p>}
             </CardContent>
           </Card>
+
+          {/* Security badges */}
+          <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
+            <div className="flex items-center gap-1.5"><Lock className="w-3.5 h-3.5" /> 256-bit SSL secured</div>
+            <div className="flex items-center gap-1.5"><ShieldCheck className="w-3.5 h-3.5" /> Razorpay protected</div>
+            <div className="flex items-center gap-1.5"><CreditCard className="w-3.5 h-3.5" /> UPI, Cards, Net Banking accepted</div>
+          </div>
         </div>
 
         {/* Order Summary */}
@@ -220,31 +287,31 @@ export default function PaymentPage({ courseId }: { courseId: string }) {
                 <span className="text-lg text-primary">₹{finalAmount.toLocaleString()}</span>
               </div>
 
-              <Button
-                className="w-full mt-2"
-                size="default"
-                onClick={() => enrollMutation.mutate()}
-                disabled={enrollMutation.isPending}
-                data-testid="button-enroll"
-              >
-                {enrollMutation.isPending ? (
-                  <><Loader2 className="w-4 h-4 animate-spin mr-2" />Processing...</>
-                ) : (
-                  `Enroll Now • ₹${finalAmount.toLocaleString()}`
-                )}
-              </Button>
+              {isFree ? (
+                <Button
+                  className="w-full mt-2" size="default"
+                  onClick={() => freeEnrollMutation.mutate()}
+                  disabled={freeEnrollMutation.isPending}
+                  data-testid="button-enroll"
+                >
+                  {freeEnrollMutation.isPending ? <><Loader2 className="w-4 h-4 animate-spin mr-2" />Processing...</> : "Enroll Free"}
+                </Button>
+              ) : (
+                <Button
+                  className="w-full mt-2 gap-2 bg-[#1a1a2e] hover:bg-[#16213e] text-white" size="default"
+                  onClick={handleRazorpayPayment}
+                  disabled={payLoading}
+                  data-testid="button-pay-razorpay"
+                >
+                  {payLoading ? (
+                    <><Loader2 className="w-4 h-4 animate-spin mr-2" />Opening payment...</>
+                  ) : (
+                    <><SiRazorpay className="w-4 h-4" /> Pay ₹{finalAmount.toLocaleString()}</>
+                  )}
+                </Button>
+              )}
 
-              <div className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground mt-2">
-                <ShieldCheck className="w-3.5 h-3.5" />
-                Secure enrollment
-              </div>
-
-              <Button
-                variant="ghost"
-                className="w-full text-sm"
-                onClick={() => navigate("/dashboard")}
-                data-testid="button-cancel"
-              >
+              <Button variant="ghost" className="w-full text-sm" onClick={() => navigate("/dashboard")} data-testid="button-cancel">
                 Cancel
               </Button>
             </CardContent>
