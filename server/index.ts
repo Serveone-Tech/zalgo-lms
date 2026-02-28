@@ -1,3 +1,4 @@
+import "dotenv/config";
 import express, { type Request, Response, NextFunction } from "express";
 import helmet from "helmet";
 import session from "express-session";
@@ -12,7 +13,9 @@ const httpServer = createServer(app);
 
 const SESSION_SECRET = process.env.SESSION_SECRET;
 if (!SESSION_SECRET && process.env.NODE_ENV === "production") {
-  console.error("FATAL: SESSION_SECRET environment variable is not set in production!");
+  console.error(
+    "FATAL: SESSION_SECRET environment variable is not set in production!",
+  );
   process.exit(1);
 }
 
@@ -23,21 +26,28 @@ app.use(
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
-        scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://www.youtube.com"],
+        scriptSrc: [
+          "'self'",
+          "'unsafe-inline'",
+          "'unsafe-eval'",
+          "https://www.youtube.com",
+        ],
         styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
         fontSrc: ["'self'", "https://fonts.gstatic.com", "data:"],
         imgSrc: ["'self'", "data:", "https:", "blob:"],
         frameSrc: ["'self'", "https://www.youtube.com", "https://youtube.com"],
         connectSrc: ["'self'", "wss:", "ws:"],
         objectSrc: ["'none'"],
-        upgradeInsecureRequests: process.env.NODE_ENV === "production" ? [] : null,
+        upgradeInsecureRequests:
+          process.env.NODE_ENV === "production" ? [] : null,
       },
     },
     crossOriginEmbedderPolicy: false,
-    hsts: process.env.NODE_ENV === "production"
-      ? { maxAge: 31536000, includeSubDomains: true, preload: true }
-      : false,
-  })
+    hsts:
+      process.env.NODE_ENV === "production"
+        ? { maxAge: 31536000, includeSubDomains: true, preload: true }
+        : false,
+  }),
 );
 
 app.use(
@@ -52,7 +62,7 @@ app.use(
       sameSite: "lax",
       maxAge: 7 * 24 * 60 * 60 * 1000,
     },
-  })
+  }),
 );
 
 declare module "http" {
@@ -136,8 +146,8 @@ app.use((req, res, next) => {
   }
 
   const port = parseInt(process.env.PORT || "5000", 10);
-  httpServer.listen(
-    { port, host: "0.0.0.0", reusePort: true },
-    () => { log(`serving on port ${port}`); },
-  );
+  const host = process.platform === "win32" ? "localhost" : "0.0.0.0";
+  httpServer.listen(port, host, () => {
+    log(`serving on port ${port}`);
+  });
 })();
