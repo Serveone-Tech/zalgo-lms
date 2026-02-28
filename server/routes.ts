@@ -373,6 +373,79 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     res.json({ success: true });
   });
 
+  // --- LEADERBOARD ---
+  app.get("/api/leaderboard", async (req, res) => {
+    const userId = (req.session as any)[SESSION_USER_KEY];
+    if (!userId) return res.status(401).json({ message: "Not authenticated" });
+    const leaderboard = await storage.getLeaderboard();
+    res.json({ leaderboard });
+  });
+
+  // --- CHAT ---
+  app.get("/api/chat/messages", async (req, res) => {
+    const userId = (req.session as any)[SESSION_USER_KEY];
+    if (!userId) return res.status(401).json({ message: "Not authenticated" });
+    const user = await storage.getUser(userId);
+    if (!user) return res.status(401).json({ message: "Not authenticated" });
+    if (user.role === "admin") {
+      const messages = await storage.getAllChatMessages();
+      return res.json({ messages });
+    }
+    await storage.markChatRead(userId);
+    const messages = await storage.getChatMessages(userId);
+    res.json({ messages });
+  });
+
+  app.get("/api/chat/unread", async (req, res) => {
+    const userId = (req.session as any)[SESSION_USER_KEY];
+    if (!userId) return res.status(401).json({ message: "Not authenticated" });
+    const count = await storage.getUnreadCount(userId);
+    res.json({ count });
+  });
+
+  app.post("/api/chat/messages", async (req, res) => {
+    const userId = (req.session as any)[SESSION_USER_KEY];
+    if (!userId) return res.status(401).json({ message: "Not authenticated" });
+    const user = await storage.getUser(userId);
+    if (!user) return res.status(401).json({ message: "Not authenticated" });
+    const { content, studentId } = req.body;
+    if (!content?.trim()) return res.status(400).json({ message: "Message is required" });
+    if (user.role === "admin") {
+      if (!studentId) return res.status(400).json({ message: "studentId required for admin" });
+      const targetUser = await storage.getUser(studentId);
+      const msg = await storage.createChatMessage({ studentId, studentName: targetUser?.userName ?? "Student", content, isFromAdmin: true });
+      return res.json({ message: msg });
+    }
+    const msg = await storage.createChatMessage({ studentId: userId, studentName: user.userName, content, isFromAdmin: false });
+    res.json({ message: msg });
+  });
+
+  app.get("/api/chat/students", async (req, res) => {
+    const userId = (req.session as any)[SESSION_USER_KEY];
+    if (!userId) return res.status(401).json({ message: "Not authenticated" });
+    const user = await storage.getUser(userId);
+    if (!user || user.role !== "admin") return res.status(403).json({ message: "Forbidden" });
+    const allMessages = await storage.getAllChatMessages();
+    const studentMap = new Map<string, { studentId: string; studentName: string; lastMessage: string; lastTime: Date; unread: number }>();
+    for (const msg of allMessages) {
+      const entry = studentMap.get(msg.studentId);
+      const unreadIncr = (!msg.isFromAdmin && !msg.isRead) ? 1 : 0;
+      if (!entry || msg.timestamp > entry.lastTime) {
+        studentMap.set(msg.studentId, {
+          studentId: msg.studentId,
+          studentName: msg.studentName,
+          lastMessage: msg.content,
+          lastTime: msg.timestamp,
+          unread: (entry?.unread ?? 0) + unreadIncr,
+        });
+      } else {
+        studentMap.set(msg.studentId, { ...entry, unread: entry.unread + unreadIncr });
+      }
+    }
+    const students = Array.from(studentMap.values()).sort((a, b) => b.lastTime.getTime() - a.lastTime.getTime());
+    res.json({ students });
+  });
+
   // --- ADMIN STATS ---
   app.get("/api/admin/stats", async (req, res) => {
     const userId = (req.session as any)[SESSION_USER_KEY];

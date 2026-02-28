@@ -75,6 +75,33 @@ export interface IStorage {
   // Course extra stats
   getCourseEnrollmentCount(courseId: string): Promise<number>;
   getCourseLectureCount(courseId: string): Promise<number>;
+
+  // Leaderboard
+  getLeaderboard(): Promise<Array<{ userId: string; userName: string; totalCompleted: number; coursesCompleted: number; points: number }>>;
+
+  // Chat
+  getChatMessages(userId?: string): Promise<ChatMessage[]>;
+  createChatMessage(msg: InsertChatMessage): Promise<ChatMessage>;
+  getAllChatMessages(): Promise<ChatMessage[]>;
+  markChatRead(userId: string): Promise<void>;
+  getUnreadCount(userId: string): Promise<number>;
+}
+
+export interface ChatMessage {
+  id: string;
+  studentId: string;
+  studentName: string;
+  content: string;
+  isFromAdmin: boolean;
+  timestamp: Date;
+  isRead: boolean;
+}
+
+export interface InsertChatMessage {
+  studentId: string;
+  studentName: string;
+  content: string;
+  isFromAdmin: boolean;
 }
 
 export class MemStorage implements IStorage {
@@ -87,6 +114,7 @@ export class MemStorage implements IStorage {
   private orders = new Map<string, Order>();
   private progressRecords = new Map<string, CourseProgress>();
   private resetTokens = new Map<string, { code: string; expiresAt: Date }>();
+  private chatMessages = new Map<string, ChatMessage>();
 
   constructor() {
     this.seed();
@@ -265,6 +293,13 @@ export class MemStorage implements IStorage {
 
     [order1, order2, order3, order4, order5].forEach(o => this.orders.set(o.id, o));
 
+    const chat1: ChatMessage = { id: "chat-001", studentId: user1Id, studentName: "Rahul Sharma", content: "Sir, React hooks mein useEffect aur useLayoutEffect ka kya difference hai?", isFromAdmin: false, timestamp: new Date("2024-03-10T10:00:00"), isRead: true };
+    const chat2: ChatMessage = { id: "chat-002", studentId: user1Id, studentName: "Admin User", content: "Great question! useEffect runs after paint (asynchronous), while useLayoutEffect runs before paint (synchronous). Use useLayoutEffect when you need to measure DOM elements. For most cases, useEffect is the right choice.", isFromAdmin: true, timestamp: new Date("2024-03-10T10:30:00"), isRead: true };
+    const chat3: ChatMessage = { id: "chat-003", studentId: user2Id, studentName: "Priya Patel", content: "Node.js module system samajh nahi aa raha - CommonJS vs ES Modules?", isFromAdmin: false, timestamp: new Date("2024-03-11T14:00:00"), isRead: true };
+    const chat4: ChatMessage = { id: "chat-004", studentId: user2Id, studentName: "Admin User", content: "CommonJS uses require() and module.exports (older style). ES Modules use import/export (modern standard). Node.js now supports both. For new projects, prefer ES Modules!", isFromAdmin: true, timestamp: new Date("2024-03-11T14:45:00"), isRead: true };
+
+    [chat1, chat2, chat3, chat4].forEach(c => this.chatMessages.set(c.id, c));
+
     const progress1: CourseProgress = { id: "prog-001", userId: user1Id, courseId: course1Id, lectureId: "lec-001", completedAt: new Date() };
     const progress2: CourseProgress = { id: "prog-002", userId: user1Id, courseId: course1Id, lectureId: "lec-002", completedAt: new Date() };
     const progress3: CourseProgress = { id: "prog-003", userId: user1Id, courseId: course1Id, lectureId: "lec-003", completedAt: new Date() };
@@ -430,6 +465,42 @@ export class MemStorage implements IStorage {
       count += Array.from(this.lectures.values()).filter(l => l.moduleId === m.id).length;
     }
     return count;
+  }
+
+  async getLeaderboard() {
+    const users = Array.from(this.users.values()).filter(u => u.role === "user");
+    const results = await Promise.all(users.map(async u => {
+      const completedRecs = Array.from(this.progressRecords.values()).filter(p => p.userId === u.id);
+      const totalCompleted = completedRecs.length;
+      const enrollments = Array.from(this.enrollments.values()).filter(e => e.userId === u.id);
+      const coursesCompleted = enrollments.filter(e => (e.progress ?? 0) >= 100).length;
+      const points = totalCompleted * 10 + coursesCompleted * 100;
+      return { userId: u.id, userName: u.userName, totalCompleted, coursesCompleted, points };
+    }));
+    return results.sort((a, b) => b.points - a.points);
+  }
+
+  async getChatMessages(userId?: string) {
+    const msgs = Array.from(this.chatMessages.values());
+    if (!userId) return msgs.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+    return msgs.filter(m => m.studentId === userId).sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+  }
+  async createChatMessage(msg: InsertChatMessage): Promise<ChatMessage> {
+    const message: ChatMessage = { ...msg, id: randomUUID(), timestamp: new Date(), isRead: false };
+    this.chatMessages.set(message.id, message);
+    return message;
+  }
+  async getAllChatMessages() {
+    return Array.from(this.chatMessages.values()).sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+  }
+  async markChatRead(userId: string) {
+    Array.from(this.chatMessages.values())
+      .filter(m => m.studentId === userId && !m.isRead && m.isFromAdmin)
+      .forEach(m => this.chatMessages.set(m.id, { ...m, isRead: true }));
+  }
+  async getUnreadCount(userId: string) {
+    return Array.from(this.chatMessages.values())
+      .filter(m => m.studentId === userId && !m.isRead && m.isFromAdmin).length;
   }
 }
 

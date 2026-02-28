@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation, Link } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -26,6 +26,13 @@ import {
 import { apiRequest } from "@/lib/queryClient";
 import { cn } from "@/lib/utils";
 
+declare global {
+  interface Window {
+    YT: any;
+    onYouTubeIframeAPIReady: () => void;
+  }
+}
+
 interface Lecture {
   id: string;
   title: string;
@@ -50,9 +57,19 @@ interface Course {
 }
 
 function formatDuration(seconds: number) {
+  if (!seconds || seconds <= 0) return "";
   const m = Math.floor(seconds / 60);
-  const s = seconds % 60;
+  const s = Math.round(seconds % 60);
   return `${m}:${s.toString().padStart(2, "0")}`;
+}
+
+function extractYouTubeId(url: string): string | null {
+  const m = url.match(/(?:embed\/|v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+  return m ? m[1] : null;
+}
+
+function buildYouTubeUrl(videoId: string) {
+  return `https://www.youtube.com/embed/${videoId}?enablejsapi=1&rel=0&modestbranding=1&iv_load_policy=3&origin=${encodeURIComponent(window.location.origin)}`;
 }
 
 export default function CoursePlayerPage({ courseId }: { courseId: string }) {
@@ -62,6 +79,11 @@ export default function CoursePlayerPage({ courseId }: { courseId: string }) {
   const qc = useQueryClient();
   const [activeLecture, setActiveLecture] = useState<Lecture | null>(null);
   const [expandedModules, setExpandedModules] = useState<Set<string>>(new Set());
+  const [realDurations, setRealDurations] = useState<Record<string, number>>({});
+  const [currentDuration, setCurrentDuration] = useState<number>(0);
+  const playerRef = useRef<any>(null);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const ytApiLoaded = useRef(false);
 
   const { data: courseData, isLoading: courseLoading } = useQuery<{ course: Course }>({
     queryKey: [`/api/courses/${courseId}`],
@@ -89,22 +111,6 @@ export default function CoursePlayerPage({ courseId }: { courseId: string }) {
     ? Math.round((completed.size / allLectures.length) * 100)
     : 0;
 
-  useEffect(() => {
-    if (modules.length > 0) {
-      setExpandedModules(new Set([modules[0].id]));
-      if (!activeLecture && modules[0].lectures.length > 0) {
-        setActiveLecture(modules[0].lectures[0]);
-      }
-    }
-  }, [modules.length]);
-
-  useEffect(() => {
-    if (!enrollData) return;
-    if (!enrollData.enrolled) {
-      navigate(`/course/${courseId}/payment`);
-    }
-  }, [enrollData]);
-
   const completeMutation = useMutation({
     mutationFn: async (lectureId: string) => {
       const res = await apiRequest("POST", `/api/courses/${courseId}/lectures/${lectureId}/complete`, {});
@@ -117,6 +123,84 @@ export default function CoursePlayerPage({ courseId }: { courseId: string }) {
     },
   });
 
+  const initYouTubePlayer = useCallback((videoId: string, lectureId: string) => {
+    if (playerRef.current) {
+      try { playerRef.current.destroy(); } catch {}
+      playerRef.current = null;
+    }
+    if (!window.YT || !window.YT.Player) return;
+    playerRef.current = new window.YT.Player("yt-player", {
+      videoId,
+      playerVars: { rel: 0, modestbranding: 1, iv_load_policy: 3, controls: 1 },
+      events: {
+        onReady: (e: any) => {
+          const dur = e.target.getDuration();
+          if (dur > 0) {
+            setCurrentDuration(dur);
+            setRealDurations(prev => ({ ...prev, [lectureId]: dur }));
+          }
+        },
+        onStateChange: (e: any) => {
+          if (e.data === window.YT.PlayerState.ENDED) {
+            completeMutation.mutate(lectureId);
+          }
+        },
+      },
+    });
+  }, []);
+
+  useEffect(() => {
+    if (ytApiLoaded.current) return;
+    ytApiLoaded.current = true;
+    const script = document.createElement("script");
+    script.src = "https://www.youtube.com/iframe_api";
+    document.body.appendChild(script);
+    window.onYouTubeIframeAPIReady = () => {
+      if (activeLecture?.videoUrl) {
+        const vid = extractYouTubeId(activeLecture.videoUrl);
+        if (vid) initYouTubePlayer(vid, activeLecture.id);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!activeLecture?.videoUrl) return;
+    const vid = extractYouTubeId(activeLecture.videoUrl);
+    if (!vid) return;
+    setCurrentDuration(realDurations[activeLecture.id] ?? activeLecture.duration);
+    if (window.YT?.Player) {
+      initYouTubePlayer(vid, activeLecture.id);
+    } else {
+      window.onYouTubeIframeAPIReady = () => {
+        initYouTubePlayer(vid, activeLecture.id);
+      };
+    }
+  }, [activeLecture?.id]);
+
+  useEffect(() => {
+    if (modules.length > 0) {
+      setExpandedModules(new Set([modules[0].id]));
+      if (!activeLecture && modules[0].lectures.length > 0) {
+        setActiveLecture(modules[0].lectures[0]);
+      }
+    }
+  }, [modules.length]);
+
+  useEffect(() => {
+    if (!enrollData) return;
+    if (!enrollData.enrolled) navigate(`/course/${courseId}/payment`);
+  }, [enrollData]);
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && (e.key === "s" || e.key === "S")) {
+        e.preventDefault();
+      }
+    };
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  }, []);
+
   const toggleModule = (id: string) => {
     setExpandedModules(prev => {
       const next = new Set(prev);
@@ -124,6 +208,10 @@ export default function CoursePlayerPage({ courseId }: { courseId: string }) {
       else next.add(id);
       return next;
     });
+  };
+
+  const getDuration = (lecture: Lecture) => {
+    return realDurations[lecture.id] ?? lecture.duration;
   };
 
   const isLoading = courseLoading || modulesLoading;
@@ -136,9 +224,11 @@ export default function CoursePlayerPage({ courseId }: { courseId: string }) {
     );
   }
 
+  const activeVideoId = activeLecture?.videoUrl ? extractYouTubeId(activeLecture.videoUrl) : null;
+  const displayDuration = activeLecture ? (currentDuration || activeLecture.duration) : 0;
+
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      {/* Header */}
       <header className="flex items-center justify-between px-4 py-2.5 border-b border-border bg-background/95 backdrop-blur sticky top-0 z-50 h-14">
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard")} data-testid="button-back">
@@ -165,7 +255,6 @@ export default function CoursePlayerPage({ courseId }: { courseId: string }) {
       </header>
 
       <div className="flex flex-1 overflow-hidden">
-        {/* Sidebar - Course Content */}
         <aside className="w-72 border-r border-border bg-background flex-shrink-0 hidden md:flex flex-col">
           <div className="p-4 border-b border-border">
             <h3 className="font-semibold text-sm mb-1">Course Content</h3>
@@ -188,7 +277,6 @@ export default function CoursePlayerPage({ courseId }: { courseId: string }) {
               {modules.map((module) => {
                 const isExpanded = expandedModules.has(module.id);
                 const moduleCompleted = module.lectures.filter(l => completed.has(l.id)).length;
-
                 return (
                   <div key={module.id} className="mb-1">
                     <button
@@ -198,19 +286,16 @@ export default function CoursePlayerPage({ courseId }: { courseId: string }) {
                     >
                       <div className="flex-1 min-w-0">
                         <p className="font-medium text-sm text-foreground truncate">{module.title}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {moduleCompleted}/{module.lectures.length} done
-                        </p>
+                        <p className="text-xs text-muted-foreground">{moduleCompleted}/{module.lectures.length} done</p>
                       </div>
                       {isExpanded ? <ChevronDown className="w-4 h-4 text-muted-foreground flex-shrink-0" /> : <ChevronRight className="w-4 h-4 text-muted-foreground flex-shrink-0" />}
                     </button>
-
                     {isExpanded && (
                       <div className="ml-2 pl-2 border-l border-border space-y-0.5 mb-1">
                         {module.lectures.map((lecture) => {
                           const isActive = activeLecture?.id === lecture.id;
                           const isDone = completed.has(lecture.id);
-
+                          const dur = getDuration(lecture);
                           return (
                             <button
                               key={lecture.id}
@@ -231,9 +316,9 @@ export default function CoursePlayerPage({ courseId }: { courseId: string }) {
                                 )}
                               </div>
                               <span className="flex-1 truncate text-xs">{lecture.title}</span>
-                              {lecture.duration > 0 && (
+                              {dur > 0 && (
                                 <span className="text-xs text-muted-foreground flex-shrink-0">
-                                  {formatDuration(lecture.duration)}
+                                  {formatDuration(dur)}
                                 </span>
                               )}
                             </button>
@@ -248,19 +333,55 @@ export default function CoursePlayerPage({ courseId }: { courseId: string }) {
           </ScrollArea>
         </aside>
 
-        {/* Main Content */}
         <main className="flex-1 overflow-y-auto">
           {activeLecture ? (
             <div className="max-w-4xl mx-auto p-6">
-              {/* Video Player */}
-              <div className="rounded-xl overflow-hidden bg-black aspect-video mb-6 shadow-lg">
-                {activeLecture.videoUrl ? (
-                  <iframe
-                    src={activeLecture.videoUrl}
-                    className="w-full h-full"
-                    allowFullScreen
-                    title={activeLecture.title}
-                  />
+              {/* Protected Video Player */}
+              <div
+                className="relative rounded-xl overflow-hidden bg-black aspect-video mb-6 shadow-lg select-none"
+                onContextMenu={e => e.preventDefault()}
+                data-testid="video-player-container"
+              >
+                {activeVideoId ? (
+                  <>
+                    <div id="yt-player" className="w-full h-full" />
+                    {/* User watermark - pointer-events:none lets clicks pass through */}
+                    <div
+                      className="absolute bottom-12 right-3 pointer-events-none select-none z-10 flex flex-col items-end gap-0.5"
+                      style={{ userSelect: "none" }}
+                    >
+                      <span className="text-white/25 text-[10px] font-mono" style={{ textShadow: "0 0 6px rgba(0,0,0,1)" }}>
+                        {user?.email}
+                      </span>
+                      <span className="text-white/20 text-[9px] font-mono" style={{ textShadow: "0 0 6px rgba(0,0,0,1)" }}>
+                        Zalgo Edutech
+                      </span>
+                    </div>
+                    {/* Transparent top overlay to catch right-click / drag attempts */}
+                    <div
+                      className="absolute inset-0 z-0"
+                      onContextMenu={e => e.preventDefault()}
+                      onDragStart={e => e.preventDefault()}
+                      style={{ background: "transparent", pointerEvents: "none" }}
+                    />
+                  </>
+                ) : activeLecture.videoUrl ? (
+                  <>
+                    <iframe
+                      src={activeLecture.videoUrl}
+                      className="w-full h-full"
+                      allowFullScreen
+                      title={activeLecture.title}
+                    />
+                    <div
+                      className="absolute bottom-12 right-3 pointer-events-none select-none z-10"
+                      style={{ userSelect: "none" }}
+                    >
+                      <span className="text-white/25 text-[10px] font-mono" style={{ textShadow: "0 0 6px rgba(0,0,0,1)" }}>
+                        {user?.email}
+                      </span>
+                    </div>
+                  </>
                 ) : (
                   <div className="w-full h-full flex flex-col items-center justify-center gap-3">
                     <Play className="w-12 h-12 text-white/40" />
@@ -273,10 +394,10 @@ export default function CoursePlayerPage({ courseId }: { courseId: string }) {
               <div className="flex items-start justify-between gap-4 mb-6">
                 <div className="flex-1">
                   <h2 className="text-xl font-bold text-foreground">{activeLecture.title}</h2>
-                  {activeLecture.duration > 0 && (
+                  {displayDuration > 0 && (
                     <div className="flex items-center gap-1.5 text-sm text-muted-foreground mt-1">
                       <Clock className="w-3.5 h-3.5" />
-                      <span>{formatDuration(activeLecture.duration)}</span>
+                      <span data-testid="text-lecture-duration">{formatDuration(displayDuration)}</span>
                     </div>
                   )}
                 </div>
@@ -295,7 +416,6 @@ export default function CoursePlayerPage({ courseId }: { courseId: string }) {
 
               <Separator className="mb-6" />
 
-              {/* Navigation */}
               <div className="flex justify-between gap-3">
                 {(() => {
                   const idx = allLectures.findIndex(l => l.id === activeLecture.id);
@@ -323,7 +443,6 @@ export default function CoursePlayerPage({ courseId }: { courseId: string }) {
                 })()}
               </div>
 
-              {/* Certificate Section */}
               {totalProgress >= 100 && (
                 <div className="mt-8 p-6 rounded-xl bg-gradient-to-r from-primary/10 to-primary/5 border border-primary/20">
                   <div className="flex items-center gap-4">

@@ -20,8 +20,11 @@ import AdminCourseFormPage from "@/pages/admin/course-form";
 import AdminLecturesPage from "@/pages/admin/lectures";
 import AdminUsersPage from "@/pages/admin/users";
 import AdminCouponsPage from "@/pages/admin/coupons";
+import AdminChatPage from "@/pages/admin-chat";
+import LeaderboardPage from "@/pages/leaderboard";
 import AppLayout from "@/components/layouts/app-layout";
 import NotFound from "@/pages/not-found";
+import { ChatWidget } from "@/components/chat-widget";
 import { Loader2 } from "lucide-react";
 
 function LoadingScreen() {
@@ -96,6 +99,9 @@ function Router() {
           </AppLayout>
         )}
       </Route>
+      <Route path="/leaderboard">
+        {() => <ProtectedRoute component={LeaderboardPage} />}
+      </Route>
       <Route path="/course/:courseId">
         {(params) => (
           <ProtectedRoute component={CoursePlayerPage} courseId={params.courseId} />
@@ -157,6 +163,9 @@ function Router() {
           </AppLayout>
         )}
       </Route>
+      <Route path="/admin/chats">
+        {() => <ProtectedRoute component={AdminChatPage} adminOnly />}
+      </Route>
       <Route component={NotFound} />
     </Switch>
   );
@@ -169,6 +178,7 @@ export default function App() {
         <TooltipProvider>
           <AuthProvider>
             <Router />
+            <ChatWidget />
             <Toaster />
           </AuthProvider>
         </TooltipProvider>

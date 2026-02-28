@@ -18,12 +18,15 @@ import {
   Tag,
   UserCircle,
   LogOut,
+  Trophy,
+  MessageCircle,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 
 const studentItems = [
   { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
+  { title: "Leaderboard", url: "/leaderboard", icon: Trophy },
   { title: "Profile", url: "/profile", icon: UserCircle },
 ];
 
@@ -31,6 +34,7 @@ const adminItems = [
   { title: "My Courses", url: "/admin/courses", icon: BookOpen },
   { title: "Users", url: "/admin/users", icon: Users },
   { title: "Coupons", url: "/admin/coupons", icon: Tag },
+  { title: "Student Chats", url: "/admin/chats", icon: MessageCircle },
   { title: "Profile", url: "/profile", icon: UserCircle },
 ];
 
