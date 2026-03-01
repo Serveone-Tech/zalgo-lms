@@ -1,4 +1,6 @@
 import "dotenv/config";
+import connectPgSimple from "connect-pg-simple";
+const PgStore = connectPgSimple(session);
 import express, { type Request, Response, NextFunction } from "express";
 import helmet from "helmet";
 import session from "express-session";
@@ -31,12 +33,24 @@ app.use(
           "'unsafe-inline'",
           "'unsafe-eval'",
           "https://www.youtube.com",
+          "https://checkout.razorpay.com",
         ],
         styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
         fontSrc: ["'self'", "https://fonts.gstatic.com", "data:"],
         imgSrc: ["'self'", "data:", "https:", "blob:"],
-        frameSrc: ["'self'", "https://www.youtube.com", "https://youtube.com"],
-        connectSrc: ["'self'", "wss:", "ws:"],
+        frameSrc: [
+          "'self'",
+          "https://www.youtube.com",
+          "https://youtube.com",
+          "https://*.razorpay.com",
+        ],
+        connectSrc: [
+          "'self'",
+          "wss:",
+          "ws:",
+          "https://api.razorpay.com",
+          "https://*.razorpay.com",
+        ],
         objectSrc: ["'none'"],
         upgradeInsecureRequests:
           process.env.NODE_ENV === "production" ? [] : null,
@@ -52,6 +66,13 @@ app.use(
 
 app.use(
   session({
+    store: process.env.DATABASE_URL
+      ? new PgStore({
+          conString: process.env.DATABASE_URL,
+          createTableIfMissing: true,
+          tableName: "user_sessions",
+        })
+      : undefined,
     secret: SESSION_SECRET || "lms-dev-secret-do-not-use-in-production",
     resave: false,
     saveUninitialized: false,
@@ -62,7 +83,7 @@ app.use(
       sameSite: "lax",
       maxAge: 7 * 24 * 60 * 60 * 1000,
     },
-  }),
+  })
 );
 
 declare module "http" {
