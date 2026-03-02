@@ -9,6 +9,7 @@ import { serveStatic } from "./static";
 import { createServer } from "http";
 import { apiLimiter } from "./middleware/rateLimiter";
 import { securityLogger } from "./middleware/securityLogger";
+import passport from "./config/passport";
 
 const app = express();
 const httpServer = createServer(app);
@@ -26,41 +27,47 @@ app.set("trust proxy", 1);
 app.use(
   helmet({
     contentSecurityPolicy: {
+      useDefaults: false, // ?? IMPORTANT
       directives: {
         defaultSrc: ["'self'"],
+
         scriptSrc: [
           "'self'",
           "'unsafe-inline'",
           "'unsafe-eval'",
-          "https://www.youtube.com",
           "https://checkout.razorpay.com",
-        ],
-        styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
-        fontSrc: ["'self'", "https://fonts.gstatic.com", "data:"],
-        imgSrc: ["'self'", "data:", "https:", "blob:"],
-        frameSrc: [
-          "'self'",
-          "https://www.youtube.com",
-          "https://youtube.com",
-          "https://*.razorpay.com",
-        ],
-        connectSrc: [
-          "'self'",
-          "wss:",
-          "ws:",
+          "https://checkout.razorpay.com/v1/checkout.js",
           "https://api.razorpay.com",
           "https://*.razorpay.com",
         ],
+
+        styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+
+        fontSrc: ["'self'", "https://fonts.gstatic.com", "data:"],
+
+        imgSrc: ["'self'", "data:", "blob:", "https:"],
+        frameSrc: [
+          "'self'",
+          "https://checkout.razorpay.com",
+          "https://*.razorpay.com",
+        ],
+
+        connectSrc: [
+          "'self'",
+          "https://api.razorpay.com",
+          "https://checkout.razorpay.com",
+          "https://*.razorpay.com",
+          "wss:",
+          "ws:",
+          "https://api.cloudinary.com",
+          "https://res.cloudinary.com",
+        ],
+        mediaSrc: ["'self'", "https://res.cloudinary.com", "blob:"],
+
         objectSrc: ["'none'"],
-        upgradeInsecureRequests:
-          process.env.NODE_ENV === "production" ? [] : null,
       },
     },
     crossOriginEmbedderPolicy: false,
-    hsts:
-      process.env.NODE_ENV === "production"
-        ? { maxAge: 31536000, includeSubDomains: true, preload: true }
-        : false,
   }),
 );
 
@@ -83,7 +90,7 @@ app.use(
       sameSite: "lax",
       maxAge: 7 * 24 * 60 * 60 * 1000,
     },
-  })
+  }),
 );
 
 declare module "http" {
@@ -102,6 +109,9 @@ app.use(
 );
 
 app.use(express.urlencoded({ extended: false, limit: "2mb" }));
+
+app.use(passport.initialize());
+app.use(passport.session());
 
 app.use(securityLogger);
 app.use("/api", apiLimiter);

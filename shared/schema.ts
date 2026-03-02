@@ -1,4 +1,12 @@
-import { pgTable, text, integer, boolean, timestamp, varchar, real } from "drizzle-orm/pg-core";
+import {
+  pgTable,
+  text,
+  integer,
+  boolean,
+  timestamp,
+  varchar,
+  real,
+} from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -7,6 +15,7 @@ export const users = pgTable("users", {
   userName: text("user_name").notNull(),
   email: text("email").notNull().unique(),
   password: text("password"),
+  googleId: text("google_id").unique(),
   role: text("role").notNull().default("user"),
   photoUrl: text("photo_url").default(""),
   description: text("description").default(""),
@@ -98,13 +107,35 @@ export const passwordResetTokens = pgTable("password_reset_tokens", {
   expiresAt: timestamp("expires_at").notNull(),
 });
 
-export const insertUserSchema = createInsertSchema(users).omit({ id: true, createdAt: true });
-export const insertCourseSchema = createInsertSchema(courses).omit({ id: true, createdAt: true });
-export const insertModuleSchema = createInsertSchema(modules).omit({ id: true, createdAt: true });
-export const insertLectureSchema = createInsertSchema(lectures).omit({ id: true, createdAt: true });
-export const insertEnrollmentSchema = createInsertSchema(enrollments).omit({ id: true, enrolledAt: true });
-export const insertCouponSchema = createInsertSchema(coupons).omit({ id: true, createdAt: true, usedCount: true });
-export const insertOrderSchema = createInsertSchema(orders).omit({ id: true, createdAt: true });
+export const insertUserSchema = createInsertSchema(users).omit({
+  id: true,
+  createdAt: true,
+});
+export const insertCourseSchema = createInsertSchema(courses).omit({
+  id: true,
+  createdAt: true,
+});
+export const insertModuleSchema = createInsertSchema(modules).omit({
+  id: true,
+  createdAt: true,
+});
+export const insertLectureSchema = createInsertSchema(lectures).omit({
+  id: true,
+  createdAt: true,
+});
+export const insertEnrollmentSchema = createInsertSchema(enrollments).omit({
+  id: true,
+  enrolledAt: true,
+});
+export const insertCouponSchema = createInsertSchema(coupons).omit({
+  id: true,
+  createdAt: true,
+  usedCount: true,
+});
+export const insertOrderSchema = createInsertSchema(orders).omit({
+  id: true,
+  createdAt: true,
+});
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;

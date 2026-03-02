@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/lib/auth";
 import { useLocation, Link } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -7,16 +7,24 @@ import { Label } from "@/components/ui/label";
 import { Loader2, Eye, EyeOff, GraduationCap, Users, BookOpen, Star } from "lucide-react";
 import { useTheme } from "@/components/theme-provider";
 import { Moon, Sun } from "lucide-react";
+import { SiGoogle } from "react-icons/si";
 
 export default function SignInPage() {
   const { signIn } = useAuth();
-  const [, navigate] = useLocation();
+  const [location, navigate] = useLocation();
   const { theme, toggleTheme } = useTheme();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [googleEnabled, setGoogleEnabled] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/auth/google/status").then(r => r.json()).then(d => setGoogleEnabled(d.enabled)).catch(() => {});
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("error") === "google_failed") setError("Google login failed. Please try again.");
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -97,6 +105,26 @@ export default function SignInPage() {
             <h2 className="text-2xl font-bold text-foreground">Welcome back</h2>
             <p className="text-muted-foreground mt-1 text-sm">Sign in to your Zalgo Edutech account</p>
           </div>
+
+          {googleEnabled && (
+            <>
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full gap-2"
+                onClick={() => { window.location.href = "/api/auth/google"; }}
+                data-testid="button-google-signin"
+              >
+                <SiGoogle className="w-4 h-4 text-red-500" />
+                Continue with Google
+              </Button>
+              <div className="flex items-center gap-3 my-2">
+                <div className="flex-1 h-px bg-border" />
+                <span className="text-xs text-muted-foreground">or sign in with email</span>
+                <div className="flex-1 h-px bg-border" />
+              </div>
+            </>
+          )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">

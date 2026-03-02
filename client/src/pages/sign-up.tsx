@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/lib/auth";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Loader2, Eye, EyeOff, CheckCircle2 } from "lucide-react";
 import { useTheme } from "@/components/theme-provider";
 import { Moon, Sun } from "lucide-react";
+import { SiGoogle } from "react-icons/si";
 
 export default function SignUpPage() {
   const { signUp } = useAuth();
@@ -17,6 +18,11 @@ export default function SignUpPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [googleEnabled, setGoogleEnabled] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/auth/google/status").then(r => r.json()).then(d => setGoogleEnabled(d.enabled)).catch(() => {});
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -88,6 +94,26 @@ export default function SignUpPage() {
             <h2 className="text-2xl font-bold text-foreground">Create account</h2>
             <p className="text-muted-foreground mt-1 text-sm">Sign up to start learning today</p>
           </div>
+
+          {googleEnabled && (
+            <>
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full gap-2 mb-4"
+                onClick={() => { window.location.href = "/api/auth/google"; }}
+                data-testid="button-google-signup"
+              >
+                <SiGoogle className="w-4 h-4 text-red-500" />
+                Continue with Google
+              </Button>
+              <div className="flex items-center gap-3 mb-4">
+                <div className="flex-1 h-px bg-border" />
+                <span className="text-xs text-muted-foreground">or sign up with email</span>
+                <div className="flex-1 h-px bg-border" />
+              </div>
+            </>
+          )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
