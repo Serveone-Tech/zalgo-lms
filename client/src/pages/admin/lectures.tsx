@@ -77,17 +77,13 @@ function formatDuration(s: number) {
 
 const CHUNK_SIZE = 5 * 1024 * 1024; // 5MB per chunk
 
-async function uploadToCloudinary(
-  file: File,
-  onProgress: (p: number) => void,
-): Promise<{ url: string; duration: number }> {
+async function uploadToCloudinary(file: File, onProgress: (p: number) => void): Promise<{ url: string; duration: number }> {
   const sigRes = await apiRequest("GET", "/api/upload/signature");
   if (!sigRes.ok) {
     const err = await sigRes.json();
     throw new Error(err.message ?? "Failed to get upload signature");
   }
-  const { signature, timestamp, folder, cloudName, apiKey } =
-    await sigRes.json();
+  const { signature, timestamp, folder, cloudName, apiKey } = await sigRes.json();
 
   const uploadUrl = `https://api.cloudinary.com/v1_1/${cloudName}/video/upload`;
   const uploadId = `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
@@ -111,10 +107,7 @@ async function uploadToCloudinary(
       const xhr = new XMLHttpRequest();
       xhr.open("POST", uploadUrl);
       xhr.setRequestHeader("X-Unique-Upload-Id", uploadId);
-      xhr.setRequestHeader(
-        "Content-Range",
-        `bytes ${start}-${end - 1}/${file.size}`,
-      );
+      xhr.setRequestHeader("Content-Range", `bytes ${start}-${end - 1}/${file.size}`);
 
       xhr.upload.onprogress = (e) => {
         if (e.lengthComputable) {
@@ -131,9 +124,7 @@ async function uploadToCloudinary(
           resolve();
         } else {
           let msg = "Upload failed";
-          try {
-            msg = JSON.parse(xhr.responseText)?.error?.message ?? msg;
-          } catch {}
+          try { msg = JSON.parse(xhr.responseText)?.error?.message ?? msg; } catch {}
           reject(new Error(msg));
         }
       };
@@ -142,12 +133,8 @@ async function uploadToCloudinary(
     });
   }
 
-  if (!lastResponse)
-    throw new Error("Upload completed but no response received.");
-  return {
-    url: lastResponse.secure_url,
-    duration: Math.round(lastResponse.duration ?? 0),
-  };
+  if (!lastResponse) throw new Error("Upload completed but no response received.");
+  return { url: lastResponse.secure_url, duration: Math.round(lastResponse.duration ?? 0) };
 }
 
 export default function AdminLecturesPage({ courseId }: { courseId: string }) {
