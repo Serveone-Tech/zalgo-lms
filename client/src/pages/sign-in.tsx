@@ -188,11 +188,11 @@ export default function SignInPage() {
             </p>
           </div>
 
-          <div className="mt-5 p-3 rounded-lg bg-muted/60 border border-border">
+          {/* <div className="mt-5 p-3 rounded-lg bg-muted/60 border border-border">
             <p className="text-xs text-muted-foreground font-medium mb-1">Demo credentials</p>
             <p className="text-xs text-muted-foreground">Admin: admin@lms.com / admin123</p>
             <p className="text-xs text-muted-foreground">User: rahul@example.com / password123</p>
-          </div>
+          </div> */}
         </div>
       </div>
     </div>

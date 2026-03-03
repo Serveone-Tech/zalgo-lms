@@ -9,6 +9,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { useTheme } from "@/components/theme-provider";
 import { useAuth } from "@/lib/auth";
+import { useToast } from "@/hooks/use-toast";
 import {
   ChevronDown,
   ChevronRight,
@@ -78,7 +79,8 @@ function buildYouTubeUrl(videoId: string) {
 
 export default function CoursePlayerPage({ courseId }: { courseId: string }) {
   const [, navigate] = useLocation();
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
+  const { toast } = useToast();
   const { theme, toggleTheme } = useTheme();
   const qc = useQueryClient();
   const [activeLecture, setActiveLecture] = useState<Lecture | null>(null);
@@ -89,6 +91,55 @@ export default function CoursePlayerPage({ courseId }: { courseId: string }) {
   const playerRef = useRef<any>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const ytApiLoaded = useRef(false);
+  const devToolsTriggered = useRef(false);
+
+  useEffect(() => {
+    const THRESHOLD = 160;
+
+    const forceLogout = async () => {
+      if (devToolsTriggered.current) return;
+      devToolsTriggered.current = true;
+      toast({
+        title: "⚠️ Security Alert",
+        description: "Unauthorized activity detected. You have been logged out for security reasons. Please sign in again.",
+        variant: "destructive",
+        duration: 6000,
+      });
+      await signOut();
+      navigate("/sign-in");
+    };
+
+    const isTouchDevice = "ontouchstart" in window || navigator.maxTouchPoints > 0;
+
+    const checkBySize = () => {
+      if (isTouchDevice) return;
+      const widthDiff = window.outerWidth - window.innerWidth;
+      const heightDiff = window.outerHeight - window.innerHeight;
+      if (widthDiff > THRESHOLD || heightDiff > THRESHOLD) {
+        forceLogout();
+      }
+    };
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const isDevKey =
+        e.key === "F12" ||
+        (e.ctrlKey && e.shiftKey && ["i", "I", "j", "J", "c", "C"].includes(e.key)) ||
+        (e.metaKey && e.altKey && ["i", "I"].includes(e.key));
+      if (isDevKey) {
+        e.preventDefault();
+        e.stopPropagation();
+        forceLogout();
+      }
+    };
+
+    const interval = setInterval(checkBySize, 1000);
+    window.addEventListener("keydown", handleKeyDown, true);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener("keydown", handleKeyDown, true);
+    };
+  }, []);
 
   const handleDownloadCertificate = async () => {
     setCertLoading(true);
@@ -244,6 +295,10 @@ export default function CoursePlayerPage({ courseId }: { courseId: string }) {
   }
 
   const activeVideoId = activeLecture?.videoUrl ? extractYouTubeId(activeLecture.videoUrl) : null;
+  const isCloudinaryUrl = !!activeLecture?.videoUrl && (
+    activeLecture.videoUrl.includes("res.cloudinary.com") ||
+    activeLecture.videoUrl.includes("cloudinary.com/")
+  );
   const displayDuration = activeLecture ? (currentDuration || activeLecture.duration) : 0;
 
   return (
@@ -364,7 +419,7 @@ export default function CoursePlayerPage({ courseId }: { courseId: string }) {
                 {activeVideoId ? (
                   <>
                     <div id="yt-player" className="w-full h-full" />
-                    {/* User watermark - pointer-events:none lets clicks pass through */}
+                    {/* User watermark */}
                     <div
                       className="absolute bottom-12 right-3 pointer-events-none select-none z-10 flex flex-col items-end gap-0.5"
                       style={{ userSelect: "none" }}
@@ -376,13 +431,44 @@ export default function CoursePlayerPage({ courseId }: { courseId: string }) {
                         Zalgo Edutech
                       </span>
                     </div>
-                    {/* Transparent top overlay to catch right-click / drag attempts */}
                     <div
                       className="absolute inset-0 z-0"
                       onContextMenu={e => e.preventDefault()}
                       onDragStart={e => e.preventDefault()}
                       style={{ background: "transparent", pointerEvents: "none" }}
                     />
+                  </>
+                ) : isCloudinaryUrl ? (
+                  <>
+                    <video
+                      key={activeLecture.id}
+                      src={activeLecture.videoUrl}
+                      className="w-full h-full"
+                      controls
+                      controlsList="nodownload"
+                      disablePictureInPicture
+                      onContextMenu={e => e.preventDefault()}
+                      onLoadedMetadata={(e) => {
+                        const dur = (e.target as HTMLVideoElement).duration;
+                        if (dur > 0) {
+                          setCurrentDuration(dur);
+                          setRealDurations(prev => ({ ...prev, [activeLecture.id]: dur }));
+                        }
+                      }}
+                      onEnded={() => completeMutation.mutate(activeLecture.id)}
+                      data-testid="video-cloudinary"
+                    />
+                    <div
+                      className="absolute bottom-12 right-3 pointer-events-none select-none z-10 flex flex-col items-end gap-0.5"
+                      style={{ userSelect: "none" }}
+                    >
+                      <span className="text-white/25 text-[10px] font-mono" style={{ textShadow: "0 0 6px rgba(0,0,0,1)" }}>
+                        {user?.email}
+                      </span>
+                      <span className="text-white/20 text-[9px] font-mono" style={{ textShadow: "0 0 6px rgba(0,0,0,1)" }}>
+                        Zalgo Edutech
+                      </span>
+                    </div>
                   </>
                 ) : activeLecture.videoUrl ? (
                   <>

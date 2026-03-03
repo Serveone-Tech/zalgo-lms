@@ -75,6 +75,8 @@ function formatDuration(s: number) {
   return `${m}m ${s % 60}s`;
 }
 
+const CHUNK_SIZE = 5 * 1024 * 1024; // 5MB per chunk
+
 async function uploadToCloudinary(
   file: File,
   onProgress: (p: number) => void,
@@ -87,40 +89,65 @@ async function uploadToCloudinary(
   const { signature, timestamp, folder, cloudName, apiKey } =
     await sigRes.json();
 
-  const formData = new FormData();
-  formData.append("file", file);
-  formData.append("signature", signature);
-  formData.append("timestamp", String(timestamp));
-  formData.append("folder", folder);
-  formData.append("api_key", apiKey);
-  formData.append("resource_type", "video");
+  const uploadUrl = `https://api.cloudinary.com/v1_1/${cloudName}/video/upload`;
+  const uploadId = `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+  const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
 
-  return new Promise((resolve, reject) => {
-    const xhr = new XMLHttpRequest();
-    xhr.open(
-      "POST",
-      `https://api.cloudinary.com/v1_1/${cloudName}/video/upload`,
-    );
+  let lastResponse: any = null;
 
-    xhr.upload.onprogress = (e) => {
-      if (e.lengthComputable)
-        onProgress(Math.round((e.loaded / e.total) * 100));
-    };
+  for (let i = 0; i < totalChunks; i++) {
+    const start = i * CHUNK_SIZE;
+    const end = Math.min(start + CHUNK_SIZE, file.size);
+    const chunk = file.slice(start, end);
 
-    xhr.onload = () => {
-      if (xhr.status === 200) {
-        const data = JSON.parse(xhr.responseText);
-        resolve({
-          url: data.secure_url,
-          duration: Math.round(data.duration ?? 0),
-        });
-      } else {
-        reject(new Error("Upload failed. Please try again."));
-      }
-    };
-    xhr.onerror = () => reject(new Error("Network error during upload."));
-    xhr.send(formData);
-  });
+    const formData = new FormData();
+    formData.append("file", chunk);
+    formData.append("signature", signature);
+    formData.append("timestamp", String(timestamp));
+    formData.append("folder", folder);
+    formData.append("api_key", apiKey);
+
+    await new Promise<void>((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open("POST", uploadUrl);
+      xhr.setRequestHeader("X-Unique-Upload-Id", uploadId);
+      xhr.setRequestHeader(
+        "Content-Range",
+        `bytes ${start}-${end - 1}/${file.size}`,
+      );
+
+      xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable) {
+          const chunkProgress = e.loaded / e.total;
+          const overall = Math.round(((i + chunkProgress) / totalChunks) * 100);
+          onProgress(overall);
+        }
+      };
+
+      xhr.onload = () => {
+        if (xhr.status === 200 || xhr.status === 206) {
+          if (xhr.status === 200) lastResponse = JSON.parse(xhr.responseText);
+          onProgress(Math.round(((i + 1) / totalChunks) * 100));
+          resolve();
+        } else {
+          let msg = "Upload failed";
+          try {
+            msg = JSON.parse(xhr.responseText)?.error?.message ?? msg;
+          } catch {}
+          reject(new Error(msg));
+        }
+      };
+      xhr.onerror = () => reject(new Error("Network error during upload."));
+      xhr.send(formData);
+    });
+  }
+
+  if (!lastResponse)
+    throw new Error("Upload completed but no response received.");
+  return {
+    url: lastResponse.secure_url,
+    duration: Math.round(lastResponse.duration ?? 0),
+  };
 }
 
 export default function AdminLecturesPage({ courseId }: { courseId: string }) {
