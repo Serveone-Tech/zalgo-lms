@@ -397,7 +397,8 @@ export default function DashboardPage() {
       )}
 
       {/* My Courses */}
-      <section>
+      {enrolledCourses.length > 0 &&(
+        <section>
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-base font-semibold flex items-center gap-2">
             <BookOpen className="w-4 h-4 text-primary" />
@@ -424,12 +425,13 @@ export default function DashboardPage() {
           </Card>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
-            {enrolledCourses.map(course => (
+            {enrolledCourses.length > 0 && enrolledCourses.map(course => (
               <EnrolledCourseCard key={course.id} course={course} />
             ))}
           </div>
         )}
       </section>
+      )}
 
       {/* Explore Categories */}
       {dynamicCategories.length > 0 && (
